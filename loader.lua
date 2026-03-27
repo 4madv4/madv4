@@ -11,7 +11,7 @@ end
 local function downloadFile(path, func)
     if not isfile(path) then
         local suc, res = pcall(function()
-            return game:HttpGet('https://raw.githubusercontent.com/4madvape/madvape/'..readfile('newvape/profiles/commit.txt')..'/'..select(1, path:gsub('newvape/', '')), true)
+            return game:HttpGet('https://raw.githubusercontent.com/4madvape/madvape/'..readfile('vaperewrite/profiles/commit.txt')..'/'..select(1, path:gsub('vaperewrite/', '')), true)
         end)
         if not suc or res == '404: Not Found' then
             error(res)
@@ -34,3 +34,28 @@ local function wipeFolder(path)
     end
 end
 
+for _, folder in {'vaperewrite', 'vaperewrite/games', 'vaperewrite/profiles', 'vaperewrite/assets', 'vaperewrite/libraries', 'vaperewrite/guis'} do
+    if not isfolder(folder) then
+        makefolder(folder)
+    end
+end
+
+if not shared.VapeDeveloper then
+    local _, subbed = pcall(function()
+        return game:HttpGet('https://github.com/4madvape/madvape')
+    end)
+    local commit = subbed:find('current0id')
+    commit = commit and subbed:sub(commit + 13, commit + 52) or nil
+    commit = commit and #commit == 40 and commit or 'main'
+    if commit == 'main' or (isfile('vaperewrite/profiles/commit.txt') and readfile('vaperewrite/profiles/commit.txt') or '') ~= commit then
+      wipeFolder('vaperewrite')
+		wipeFolder('vaperewrite/games')
+		wipeFolder('vaperewrite/guis')
+		wipeFolder('vaperewrite/libraries')
+	end
+	writefile('vaperewrite/profiles/commit.txt', commit)
+end
+
+return loadstring(downloadFile('vaperewrite/main.lua'), 'main')({
+    Username = shared.ValidatedUsername
+})
