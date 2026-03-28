@@ -1,4 +1,3 @@
---This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
 local run = function(func) func() end
 local cloneref = cloneref or function(obj) return obj end
 
@@ -188,7 +187,7 @@ run(function()
 		Tooltip = 'Automatically opens lucky crates, piston inspired!'
 	})
 end)
-		
+	
 run(function()
     local ok, err = pcall(function()
         repeat task.wait() until vape and vape.Categories and vape.Categories.Render
@@ -939,6 +938,299 @@ run(function()
 			SHOW_IN_LIST = state
 			if LeaderboardSpoof.Enabled then doDispatch() end
 		end
+	})
+end)
+
+run(function()
+	local NametagSpoof
+	local SpoofRankDropdown
+
+	local lplr = game.Players.LocalPlayer
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local CollectionService = game:GetService("CollectionService")
+
+	local BedwarsImageId = require(ReplicatedStorage.TS.image["image-id"]).BedwarsImageId
+
+	local RANK_MAP = {
+		Bronze = "BRONZE_RANK",
+		Silver = "SILVER_RANK",
+		Gold = "GOLD_RANK",
+		Platinum = "PLATINUM_RANK",
+		Diamond = "DIAMOND_RANK",
+		Emerald = "EMERALD_RANK",
+		Nightmare = "NIGHTMARE_RANK"
+	}
+
+	local loop
+
+	local function findNametag(char)
+		local head = char:FindFirstChild("Head")
+		if not head then return nil end
+
+		for _, gui in ipairs(CollectionService:GetTagged("EntityNameTag")) do
+			if gui:IsA("BillboardGui") and (gui.Adornee == head or gui:IsDescendantOf(char)) then
+				return gui
+			end
+		end
+
+		local direct = head:FindFirstChild("Nametag")
+		if direct and direct:IsA("BillboardGui") then
+			return direct
+		end
+
+		return nil
+	end
+
+	local function waitForNametag(char)
+		for i = 1, 50 do 
+			local tag = findNametag(char)
+			if tag then return tag end
+			task.wait(0.1)
+		end
+	end
+
+	local function applySpoof(char)
+		local head = char:WaitForChild("Head", 5)
+		if not head then return end
+
+		local original = waitForNametag(char)
+		if not original then return end
+		local old = head:FindFirstChild("NSSpoofGui")
+		if old then old:Destroy() end
+		local clone = original:Clone()
+		clone.Name = "NSSpoofGui"
+		clone.Adornee = head
+		clone.Parent = head
+
+		original.Enabled = false
+
+		return clone
+	end
+
+	local function updateRank(spoof)
+		if not spoof then return end
+
+		for _, d in ipairs(spoof:GetDescendants()) do
+			if d:IsA("ImageLabel") then
+				for _, rankKey in pairs(RANK_MAP) do
+					if d.Image == BedwarsImageId[rankKey] then
+						d.Image = BedwarsImageId[RANK_MAP[SpoofRankDropdown.Value]]
+					end
+				end
+			end
+		end
+	end
+
+	local function startLoop(char)
+		if loop then task.cancel(loop) end
+
+		loop = task.spawn(function()
+			local head = char:WaitForChild("Head", 5)
+			if not head then return end
+
+			while NametagSpoof.Enabled and char.Parent do
+				task.wait(0.05)
+
+				local spoof = head:FindFirstChild("NSSpoofGui")
+				if spoof then
+					updateRank(spoof)
+				end
+			end
+		end)
+	end
+
+	local function cleanup(char)
+		if loop then
+			task.cancel(loop)
+			loop = nil
+		end
+
+		if not char then return end
+		local head = char:FindFirstChild("Head")
+		if not head then return end
+
+		local spoof = head:FindFirstChild("NSSpoofGui")
+		if spoof then spoof:Destroy() end
+
+		local original = findNametag(char)
+		if original then
+			original.Enabled = true
+		end
+	end
+
+	NametagSpoof = vape.Categories.Render:CreateModule({
+		Name = "NametagSpoof",
+		Function = function(callback)
+			if callback then
+				if lplr.Character then
+					task.spawn(function()
+						local spoof = applySpoof(lplr.Character)
+						if spoof then
+							updateRank(spoof)
+							startLoop(lplr.Character)
+						end
+					end)
+				end
+
+				NametagSpoof:Clean(lplr.CharacterAdded:Connect(function(char)
+					task.spawn(function()
+						local spoof = applySpoof(char)
+						if spoof then
+							updateRank(spoof)
+							startLoop(char)
+						end
+					end)
+				end))
+			else
+				cleanup(lplr.Character)
+			end
+		end
+	})
+
+	SpoofRankDropdown = NametagSpoof:CreateDropdown({
+		Name = "Rank",
+		List = {"Bronze","Silver","Gold","Platinum","Diamond","Emerald","Nightmare"},
+		Default = "Nightmare"
+	})
+end)
+
+run(function()
+	local PlayerProfileSpoof
+	local PPSRankDropdown
+	local PPSRpSlider
+	local PPSLeaderboardSlider
+
+	local lplr = game.Players.LocalPlayer
+	local PP_ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local PP_BedwarsImageId = require(PP_ReplicatedStorage.TS.image["image-id"]).BedwarsImageId
+
+	local PP_RANK_MAP = {
+		["Bronze 1"] = "BRONZE_RANK",   ["Bronze 2"] = "BRONZE_RANK",   ["Bronze 3"] = "BRONZE_RANK",
+		["Silver 1"] = "SILVER_RANK",   ["Silver 2"] = "SILVER_RANK",   ["Silver 3"] = "SILVER_RANK",
+		["Gold 1"]   = "GOLD_RANK",     ["Gold 2"]   = "GOLD_RANK",     ["Gold 3"]   = "GOLD_RANK",
+		["Platinum 1"]= "PLATINUM_RANK",["Platinum 2"]= "PLATINUM_RANK",["Platinum 3"]= "PLATINUM_RANK",
+		["Diamond 1"] = "DIAMOND_RANK", ["Diamond 2"] = "DIAMOND_RANK", ["Diamond 3"] = "DIAMOND_RANK",
+		["Emerald 1"] = "EMERALD_RANK", ["Emerald 2"] = "EMERALD_RANK", ["Emerald 3"] = "EMERALD_RANK",
+		["Nightmare"] = "NIGHTMARE_RANK"
+	}
+
+	local PP_RANK_COLORS = {
+		Bronze   = Color3.fromRGB(188, 110, 60),
+		Silver   = Color3.fromRGB(180, 180, 190),
+		Gold     = Color3.fromRGB(255, 200, 0),
+		Platinum = Color3.fromRGB(60, 220, 255),
+		Diamond  = Color3.fromRGB(90, 150, 255),
+		Emerald  = Color3.fromRGB(0, 200, 100),
+	}
+
+	local PP_RANK_IMAGES = {}
+	for _, key in ipairs({"BRONZE_RANK","SILVER_RANK","GOLD_RANK","PLATINUM_RANK","DIAMOND_RANK","EMERALD_RANK","NIGHTMARE_RANK"}) do
+		local img = PP_BedwarsImageId[key]
+		if img and img ~= "" then PP_RANK_IMAGES[img] = true end
+	end
+
+	local ALL_RANK_NAMES = {}
+	for k in pairs(PP_RANK_MAP) do ALL_RANK_NAMES[k] = true end
+
+	local ppLoop = nil
+
+	local function getBaseRank(rankName)
+		return rankName:match("^(%a+)")
+	end
+
+	local function ppDoSpoof()
+		local playerGui = lplr:FindFirstChild("PlayerGui")
+		if not playerGui then return end
+
+		local rankName    = PPSRankDropdown.Value
+		local rankKey     = PP_RANK_MAP[rankName]
+		local rpValue     = PPSRpSlider.Value
+		local lbRank      = PPSLeaderboardSlider.Value
+		local isNightmare = rankName == "Nightmare"
+		local fillColor   = PP_RANK_COLORS[getBaseRank(rankName)]
+		local fillScale   = math.clamp(rpValue / 100, 0, 1)
+
+		for _, v in ipairs(playerGui:GetDescendants()) do
+			if v:IsA("ImageLabel") and PP_RANK_IMAGES[v.Image] then
+				v.Image = PP_BedwarsImageId[rankKey]
+
+			elseif v:IsA("TextLabel") then
+				local name = v.Name
+				local txt  = v.Text
+				if name == "CurrentRP" then
+					if isNightmare then
+						v.Visible = false
+					else
+						v.Visible = true
+						v.Text = rpValue .. " RP / 100"
+					end
+				elseif name == "RankName" then
+					v.Text = rankName
+				elseif txt:find("Leaderboard Rank:") then
+					v.Text = "Leaderboard Rank: " .. lbRank
+				end
+
+			elseif v:IsA("Frame") then
+				local name = v.Name
+				if name == "ProgressBar" then
+					if isNightmare then
+						v.Visible = false
+					else
+						v.Visible = true
+						if fillColor then
+							v.BackgroundColor3 = fillColor
+						end
+						v.Size = UDim2.new(fillScale, 0, v.Size.Y.Scale, v.Size.Y.Offset)
+					end
+				elseif name == "ProgressBarContainer" then
+					v.Visible = not isNightmare
+				end
+			end
+		end
+	end
+
+	local function ppStartLoop()
+		if ppLoop then task.cancel(ppLoop) end
+		ppLoop = task.spawn(function()
+			while PlayerProfileSpoof.Enabled do
+				task.wait(0.1)
+				ppDoSpoof()
+			end
+		end)
+	end
+
+	local function ppCleanup()
+		if ppLoop then task.cancel(ppLoop) ppLoop = nil end
+	end
+
+	PlayerProfileSpoof = vape.Categories.Render:CreateModule({
+		Name = "PlayerProfileSpoof",
+		Function = function(callback)
+			if callback then ppStartLoop() else ppCleanup() end
+		end,
+		Tooltip = "Spoofs rank, RP bar color and leaderboard rank in your profile UI (client sided)"
+	})
+
+	PPSRankDropdown = PlayerProfileSpoof:CreateDropdown({
+		Name = "Rank",
+		List = {
+			"Bronze 1","Bronze 2","Bronze 3",
+			"Silver 1","Silver 2","Silver 3",
+			"Gold 1","Gold 2","Gold 3",
+			"Platinum 1","Platinum 2","Platinum 3",
+			"Diamond 1","Diamond 2","Diamond 3",
+			"Emerald 1","Emerald 2","Emerald 3",
+			"Nightmare"
+		},
+		Default = "Nightmare"
+	})
+
+	PPSRpSlider = PlayerProfileSpoof:CreateSlider({
+		Name = "RP", Min = 0, Max = 100, Default = 50
+	})
+
+	PPSLeaderboardSlider = PlayerProfileSpoof:CreateSlider({
+		Name = "Leaderboard Rank", Min = 1, Max = 10000, Default = 1
 	})
 end)
 
