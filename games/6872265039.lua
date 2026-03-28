@@ -8,8 +8,8 @@ local inputService = cloneref(game:GetService('UserInputService'))
 local runService = cloneref(game:GetService('RunService'))
 
 local lplr = playersService.LocalPlayer
+repeat task.wait(0.1) until shared.vape and shared.vape.Categories and shared.vape.Categories.Render
 local vape = shared.vape
-repeat task.wait(0.1) until vape and vape.Categories and vape.Categories.Render
 local entitylib = vape.Libraries.entity
 local sessioninfo = vape.Libraries.sessioninfo
 local bedwars = {}
@@ -1072,8 +1072,6 @@ run(function()
 end)
 
 run(function()
-	repeat task.wait(0.1) until vape and vape.Categories and vape.Categories.Render
-
 	local StreamProof
 	local originalNames = {}
 	local nametagConnection = nil
