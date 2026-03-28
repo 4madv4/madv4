@@ -1070,7 +1070,6 @@ run(function()
     })
 end)
 
--- StreamProof runs in its own thread so it doesn't block anything
 task.spawn(function()
 	repeat task.wait(0.1) until shared.vape and shared.vape.Categories and shared.vape.Categories.Render
 	local vape2 = shared.vape
@@ -1214,4 +1213,9 @@ task.spawn(function()
 		end,
 		Tooltip = 'Hides your name in TabList, KillFeed, and Nametag'
 	})
+
+	-- Force vape to rebuild the GUI so StreamProof appears
+	pcall(function()
+		vape2:UpdateGUI()
+	end)
 end)
