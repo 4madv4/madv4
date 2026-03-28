@@ -1,367 +1,367 @@
---This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
-local run = function(func) func() end
-local cloneref = cloneref or function(obj) return obj end
+--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates. [cite: 4]
+local run = function(func) func() end [cite: 5]
+local cloneref = cloneref or function(obj) return obj end [cite: 5]
 
-local playersService = cloneref(game:GetService('Players'))
-local replicatedStorage = cloneref(game:GetService('ReplicatedStorage'))
-local inputService = cloneref(game:GetService('UserInputService'))
+local playersService = cloneref(game:GetService('Players')) [cite: 5]
+local replicatedStorage = cloneref(game:GetService('ReplicatedStorage')) [cite: 5]
+local inputService = cloneref(game:GetService('UserInputService')) [cite: 5]
+local runService = cloneref(game:GetService('RunService')) -- ADDED MISSING SERVICE
 
-local lplr = playersService.LocalPlayer
-local vape = shared.vape
-local entitylib = vape.Libraries.entity
-local sessioninfo = vape.Libraries.sessioninfo
-local bedwars = {}
+local lplr = playersService.LocalPlayer [cite: 5]
+local vape = shared.vape [cite: 5]
+local entitylib = vape.Libraries.entity [cite: 5]
+local sessioninfo = vape.Libraries.sessioninfo [cite: 5]
+local bedwars = {} [cite: 5]
 
 local function notif(...)
-	return vape:CreateNotification(...)
+	return vape:CreateNotification(...) [cite: 5]
 end
 
 run(function()
 	local function dumpRemote(tab)
-		local ind = table.find(tab, 'Client')
-		return ind and tab[ind + 1] or ''
+		local ind = table.find(tab, 'Client') [cite: 5]
+		return ind and tab[ind + 1] or '' [cite: 5]
 	end
-	local KnitInit, Knit
+	local KnitInit, Knit [cite: 5]
 	repeat
 		KnitInit, Knit = pcall(function()
-			return debug.getupvalue(require(lplr.PlayerScripts.TS.knit).setup, 9)
+			return debug.getupvalue(require(lplr.PlayerScripts.TS.knit).setup, 9) [cite: 5]
 		end)
-		if KnitInit then break end
-		task.wait(0.1)
+		if KnitInit then break end [cite: 5]
+		task.wait(0.1) [cite: 5]
 	until KnitInit
 
-	if not debug.getupvalue(Knit.Start, 1) then
-		repeat task.wait(0.1) until debug.getupvalue(Knit.Start, 1)
+	if not debug.getupvalue(Knit.Start, 1) then [cite: 5]
+		repeat task.wait(0.1) until debug.getupvalue(Knit.Start, 1) [cite: 5]
 	end
 
-	local Flamework = require(replicatedStorage['rbxts_include']['node_modules']['@flamework'].core.out).Flamework
-	local InventoryUtil = require(replicatedStorage.TS.inventory['inventory-util']).InventoryUtil
-	local Client = require(replicatedStorage.TS.remotes).default.Client
-	local OldGet, OldBreak = Client.Get
+	local Flamework = require(replicatedStorage['rbxts_include']['node_modules']['@flamework'].core.out).Flamework [cite: 5]
+	local InventoryUtil = require(replicatedStorage.TS.inventory['inventory-util']).InventoryUtil [cite: 5]
+	local Client = require(replicatedStorage.TS.remotes).default.Client [cite: 5]
+	local OldGet, OldBreak = Client.Get [cite: 5]
 	local function safeGetProto(func, index)
-		if not func then return nil end
-		local success, proto = pcall(safeGetProto, func, index)
+		if not func then return nil end [cite: 5]
+		local success, proto = pcall(safeGetProto, func, index) [cite: 5, 6]
 		if success then
-			return proto
+			return proto [cite: 6]
 		else
-			warn("function:", func, "index:", index) 
-			return nil
+			warn("function:", func, "index:", index) [cite: 6]
+			return nil [cite: 6]
 		end
 	end
 
 	bedwars = setmetatable({
-	 	MatchHistroyApp = require(lplr.PlayerScripts.TS.controllers.global["match-history"].ui["match-history-moderation-app"]).MatchHistoryModerationApp,
-	 	MatchHistroyController = Knit.Controllers.MatchHistoryController,
-		AbilityController = Flamework.resolveDependency('@easy-games/game-core:client/controllers/ability/ability-controller@AbilityController'),
-		AnimationType = require(replicatedStorage.TS.animation['animation-type']).AnimationType,
-		AnimationUtil = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out['shared'].util['animation-util']).AnimationUtil,
-		AppController = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out.client.controllers['app-controller']).AppController,
-		BedBreakEffectMeta = require(replicatedStorage.TS.locker['bed-break-effect']['bed-break-effect-meta']).BedBreakEffectMeta,
-		BedwarsKitMeta = require(replicatedStorage.TS.games.bedwars.kit['bedwars-kit-meta']).BedwarsKitMeta,
-		ClickHold = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out.client.ui.lib.util['click-hold']).ClickHold,
-		Client = Client,
-		ClientConstructor = require(replicatedStorage['rbxts_include']['node_modules']['@rbxts'].net.out.client),
-		MatchHistoryController = require(lplr.PlayerScripts.TS.controllers.global['match-history']['match-history-controller']),
-		PlayerProfileUIController = require(lplr.PlayerScripts.TS.controllers.global['player-profile']['player-profile-ui-controller']),
-		TitleTypes = require(game.ReplicatedStorage.TS.locker.title['title-type']).TitleType,
-		TitleTypesMeta =  require(game.ReplicatedStorage.TS.locker.title['title-meta']).TitleMeta,
-		EmoteType = require(replicatedStorage.TS.locker.emote['emote-type']).EmoteType,
-		GameAnimationUtil = require(replicatedStorage.TS.animation['animation-util']).GameAnimationUtil,
-		NotificationController = Flamework.resolveDependency('@easy-games/game-core:client/controllers/notification-controller@NotificationController'),
+	 	MatchHistroyApp = require(lplr.PlayerScripts.TS.controllers.global["match-history"].ui["match-history-moderation-app"]).MatchHistoryModerationApp, [cite: 6]
+	 	MatchHistroyController = Knit.Controllers.MatchHistoryController, [cite: 6]
+		AbilityController = Flamework.resolveDependency('@easy-games/game-core:client/controllers/ability/ability-controller@AbilityController'), [cite: 6]
+		AnimationType = require(replicatedStorage.TS.animation['animation-type']).AnimationType, [cite: 6]
+		AnimationUtil = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out['shared'].util['animation-util']).AnimationUtil, [cite: 6]
+		AppController = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out.client.controllers['app-controller']).AppController, [cite: 6]
+		BedBreakEffectMeta = require(replicatedStorage.TS.locker['bed-break-effect']['bed-break-effect-meta']).BedBreakEffectMeta, [cite: 6]
+		BedwarsKitMeta = require(replicatedStorage.TS.games.bedwars.kit['bedwars-kit-meta']).BedwarsKitMeta, [cite: 6]
+		ClickHold = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out.client.ui.lib.util['click-hold']).ClickHold, [cite: 6]
+		Client = Client, [cite: 6]
+		ClientConstructor = require(replicatedStorage['rbxts_include']['node_modules']['@rbxts'].net.out.client), [cite: 6]
+		MatchHistoryController = require(lplr.PlayerScripts.TS.controllers.global['match-history']['match-history-controller']), [cite: 6]
+		PlayerProfileUIController = require(lplr.PlayerScripts.TS.controllers.global['player-profile']['player-profile-ui-controller']), [cite: 6]
+		TitleTypes = require(game.ReplicatedStorage.TS.locker.title['title-type']).TitleType, [cite: 6]
+		TitleTypesMeta =  require(game.ReplicatedStorage.TS.locker.title['title-meta']).TitleMeta, [cite: 6]
+		EmoteType = require(replicatedStorage.TS.locker.emote['emote-type']).EmoteType, [cite: 6]
+		GameAnimationUtil = require(replicatedStorage.TS.animation['animation-util']).GameAnimationUtil, [cite: 6]
+		NotificationController = Flamework.resolveDependency('@easy-games/game-core:client/controllers/notification-controller@NotificationController'), [cite: 6]
 		getIcon = function(item, showinv)
-			local itemmeta = bedwars.ItemMeta[item.itemType]
-			return itemmeta and showinv and itemmeta.image or ''
+			local itemmeta = bedwars.ItemMeta[item.itemType] [cite: 6]
+			return itemmeta and showinv and itemmeta.image or '' [cite: 6]
 		end,
 		getInventory = function(plr)
 			local suc, res = pcall(function()
-				return InventoryUtil.getInventory(plr)
+				return InventoryUtil.getInventory(plr) [cite: 6]
 			end)
-			return suc and res or {
-				items = {},
-				armor = {}
+			return suc and res or { [cite: 6]
+				items = {}, [cite: 6]
+				armor = {} [cite: 6]
 			}
 		end,
-		HudAliveCount = require(lplr.PlayerScripts.TS.controllers.global['top-bar'].ui.game['hud-alive-player-counts']).HudAlivePlayerCounts,
-		ItemMeta = debug.getupvalue(require(replicatedStorage.TS.item['item-meta']).getItemMeta, 1),
-		Knit = Knit,
-		KnockbackUtil = require(replicatedStorage.TS.damage['knockback-util']).KnockbackUtil,
-		MageKitUtil = require(replicatedStorage.TS.games.bedwars.kit.kits.mage['mage-kit-util']).MageKitUtil,
-		NametagController = Knit.Controllers.NametagController,
-		PartyController = Flamework.resolveDependency('@easy-games/lobby:client/controllers/party-controller@PartyController'),
-		ProjectileMeta = require(replicatedStorage.TS.projectile['projectile-meta']).ProjectileMeta,
-		QueryUtil = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out).GameQueryUtil,
-		QueueCard = require(lplr.PlayerScripts.TS.controllers.global.queue.ui['queue-card']).QueueCard,
-		QueueMeta = require(replicatedStorage.TS.game['queue-meta']).QueueMeta,
-		Roact = require(replicatedStorage['rbxts_include']['node_modules']['@rbxts']['roact'].src),
-		RuntimeLib = require(replicatedStorage['rbxts_include'].RuntimeLib),
-		SoundList = require(replicatedStorage.TS.sound['game-sound']).GameSound,
-		Store = require(lplr.PlayerScripts.TS.ui.store).ClientStore,
-		TeamUpgradeMeta = debug.getupvalue(require(replicatedStorage.TS.games.bedwars['team-upgrade']['team-upgrade-meta']).getTeamUpgradeMetaForQueue, 6),
-		UILayers = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out).UILayers,
-		VisualizerUtils = require(lplr.PlayerScripts.TS.lib.visualizer['visualizer-utils']).VisualizerUtils,
-		WeldTable = require(replicatedStorage.TS.util['weld-util']).WeldUtil,
-		WinEffectMeta = require(replicatedStorage.TS.locker['win-effect']['win-effect-meta']).WinEffectMeta,
-		ZapNetworking = require(lplr.PlayerScripts.TS.lib.network),
+		HudAliveCount = require(lplr.PlayerScripts.TS.controllers.global['top-bar'].ui.game['hud-alive-player-counts']).HudAlivePlayerCounts, [cite: 6]
+		ItemMeta = debug.getupvalue(require(replicatedStorage.TS.item['item-meta']).getItemMeta, 1), [cite: 6]
+		Knit = Knit, [cite: 6]
+		KnockbackUtil = require(replicatedStorage.TS.damage['knockback-util']).KnockbackUtil, [cite: 6]
+		MageKitUtil = require(replicatedStorage.TS.games.bedwars.kit.kits.mage['mage-kit-util']).MageKitUtil, [cite: 6]
+		NametagController = Knit.Controllers.NametagController, [cite: 6]
+		PartyController = Flamework.resolveDependency('@easy-games/lobby:client/controllers/party-controller@PartyController'), [cite: 6]
+		ProjectileMeta = require(replicatedStorage.TS.projectile['projectile-meta']).ProjectileMeta, [cite: 6]
+		QueryUtil = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out).GameQueryUtil, [cite: 6]
+		QueueCard = require(lplr.PlayerScripts.TS.controllers.global.queue.ui['queue-card']).QueueCard, [cite: 7]
+		QueueMeta = require(replicatedStorage.TS.game['queue-meta']).QueueMeta, [cite: 7]
+		Roact = require(replicatedStorage['rbxts_include']['node_modules']['@rbxts']['roact'].src), [cite: 7]
+		RuntimeLib = require(replicatedStorage['rbxts_include'].RuntimeLib), [cite: 7]
+		SoundList = require(replicatedStorage.TS.sound['game-sound']).GameSound, [cite: 7]
+		Store = require(lplr.PlayerScripts.TS.ui.store).ClientStore, [cite: 7]
+		TeamUpgradeMeta = debug.getupvalue(require(replicatedStorage.TS.games.bedwars['team-upgrade']['team-upgrade-meta']).getTeamUpgradeMetaForQueue, 6), [cite: 7]
+		UILayers = require(replicatedStorage['rbxts_include']['node_modules']['@easy-games']['game-core'].out).UILayers, [cite: 7]
+		VisualizerUtils = require(lplr.PlayerScripts.TS.lib.visualizer['visualizer-utils']).VisualizerUtils, [cite: 7]
+		WeldTable = require(replicatedStorage.TS.util['weld-util']).WeldUtil, [cite: 7]
+		WinEffectMeta = require(replicatedStorage.TS.locker['win-effect']['win-effect-meta']).WinEffectMeta, [cite: 7]
+		ZapNetworking = require(lplr.PlayerScripts.TS.lib.network), [cite: 7]
 	}, {
 		__index = function(self, ind)
-			rawset(self, ind, Knit.Controllers[ind])
-			return rawget(self, ind)
+			rawset(self, ind, Knit.Controllers[ind]) [cite: 7]
+			return rawget(self, ind) [cite: 7]
 		end
 	})
 
-	local kills = sessioninfo:AddItem('Kills')
-	local beds = sessioninfo:AddItem('Beds')
-	local wins = sessioninfo:AddItem('Wins')
-	local games = sessioninfo:AddItem('Games')
+	local kills = sessioninfo:AddItem('Kills') [cite: 7]
+	local beds = sessioninfo:AddItem('Beds') [cite: 7]
+	local wins = sessioninfo:AddItem('Wins') [cite: 7]
+	local games = sessioninfo:AddItem('Games') [cite: 7]
 
 	vape:Clean(function()
-		table.clear(bedwars)
+		table.clear(bedwars) [cite: 7]
 	end)
 end)
 
-for _, v in vape.Modules do
+for i, v in vape.Modules do
 	if v.Category == 'Combat' or v.Category == 'Render' then
-		vape:Remove(i)
+		vape:Remove(i) [cite: 7]
 	end
 end
 
 run(function()
-	local Sprint
-	local old
+	local Sprint [cite: 7]
+	local old [cite: 7]
 	
 	Sprint = vape.Categories.Combat:CreateModule({
-		Name = 'Sprint',
+		Name = 'Sprint', [cite: 7]
 		Function = function(callback)
 			if callback then
-				if inputService.TouchEnabled then pcall(function() lplr.PlayerGui.MobileUI['2'].Visible = false end) end
-				old = bedwars.SprintController.stopSprinting
+				if inputService.TouchEnabled then pcall(function() lplr.PlayerGui.MobileUI['2'].Visible = false end) end [cite: 7]
+				old = bedwars.SprintController.stopSprinting [cite: 7]
 				bedwars.SprintController.stopSprinting = function(...)
-					local call = old(...)
-					bedwars.SprintController:startSprinting()
-					return call
+					local call = old(...) [cite: 7]
+					bedwars.SprintController:startSprinting() [cite: 7]
+					return call [cite: 7]
 				end
-				Sprint:Clean(entitylib.Events.LocalAdded:Connect(function() bedwars.SprintController:stopSprinting() end))
-				bedwars.SprintController:stopSprinting()
+				Sprint:Clean(entitylib.Events.LocalAdded:Connect(function() bedwars.SprintController:stopSprinting() end)) [cite: 7]
+				bedwars.SprintController:stopSprinting() [cite: 7]
 			else
-				if inputService.TouchEnabled then pcall(function() lplr.PlayerGui.MobileUI['2'].Visible = true end) end
-				bedwars.SprintController.stopSprinting = old
-				bedwars.SprintController:stopSprinting()
+				if inputService.TouchEnabled then pcall(function() lplr.PlayerGui.MobileUI['2'].Visible = true end) end [cite: 7]
+				bedwars.SprintController.stopSprinting = old [cite: 7]
+				bedwars.SprintController:stopSprinting() [cite: 7]
 			end
 		end,
-		Tooltip = 'Sets your sprinting to true.'
+		Tooltip = 'Sets your sprinting to true.' [cite: 8]
 	})
 end)
 	
 run(function()
-	local AutoGamble
+	local AutoGamble [cite: 8]
 	
 	AutoGamble = vape.Categories.Minigames:CreateModule({
-		Name = 'AutoGamble',
+		Name = 'AutoGamble', [cite: 8]
 		Function = function(callback)
 			if callback then
 				AutoGamble:Clean(bedwars.Client:GetNamespace('RewardCrate'):Get('CrateOpened'):Connect(function(data)
-					if data.openingPlayer == lplr then
-						local tab = bedwars.CrateItemMeta[data.reward.itemType] or {displayName = data.reward.itemType or 'unknown'}
-						notif('AutoGamble', 'Won '..tab.displayName, 5)
+					if data.openingPlayer == lplr then [cite: 8]
+						local tab = bedwars.CrateItemMeta[data.reward.itemType] or {displayName = data.reward.itemType or 'unknown'} [cite: 8]
+						notif('AutoGamble', 'Won '..tab.displayName, 5) [cite: 8]
 					end
 				end))
 	
 				repeat
-					if not bedwars.CrateAltarController.activeCrates[1] then
-						for _, v in bedwars.Store:getState().Consumable.inventory do
-							if v.consumable:find('crate') then
-								bedwars.CrateAltarController:pickCrate(v.consumable, 1)
-								task.wait(1.2)
-								if bedwars.CrateAltarController.activeCrates[1] and bedwars.CrateAltarController.activeCrates[1][2] then
-									bedwars.Client:GetNamespace('RewardCrate'):Get('OpenRewardCrate'):SendToServer({
-										crateId = bedwars.CrateAltarController.activeCrates[1][2].attributes.crateId
+					if not bedwars.CrateAltarController.activeCrates[1] then [cite: 8]
+						for _, v in bedwars.Store:getState().Consumable.inventory do [cite: 8]
+							if v.consumable:find('crate') then [cite: 8]
+								bedwars.CrateAltarController:pickCrate(v.consumable, 1) [cite: 8]
+								task.wait(1.2) [cite: 8]
+								if bedwars.CrateAltarController.activeCrates[1] and bedwars.CrateAltarController.activeCrates[1][2] then [cite: 8]
+									bedwars.Client:GetNamespace('RewardCrate'):Get('OpenRewardCrate'):SendToServer({ [cite: 8]
+										crateId = bedwars.CrateAltarController.activeCrates[1][2].attributes.crateId [cite: 8]
 									})
 								end
-								break
+								break [cite: 8]
 							end
 						end
 					end
-					task.wait(1)
-				until not AutoGamble.Enabled
+					task.wait(1) [cite: 8]
+				until not AutoGamble.Enabled [cite: 8]
 			end
 		end,
-		Tooltip = 'Automatically opens lucky crates, piston inspired!'
+		Tooltip = 'Automatically opens lucky crates, piston inspired!' [cite: 8]
 	})
 end)
 	
--- aero
-
+-- Stream Proof Module Integration
 run(function()
-	local StreamProof
-	local originalNames = {}
-	local nametagConnection = nil
+	local StreamProof [cite: 8]
+	local originalNames = {} [cite: 8]
+	local nametagConnection = nil [cite: 8]
 	
 	local function modifyPlayerName(element)
-		if element:IsA("TextLabel") and element.Name == "PlayerName" then
-			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
-				if not originalNames[element] then
-					originalNames[element] = element.Text
+		if element:IsA("TextLabel") and element.Name == "PlayerName" then [cite: 8]
+			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then [cite: 8]
+				if not originalNames[element] then [cite: 8]
+					originalNames[element] = element.Text [cite: 8]
 				end
-				element.Text = "Me"
+				element.Text = "Me" [cite: 8]
 			end
 		end
 		
-		if element:IsA("TextLabel") and element.Name == "EntityName" then
-			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
-				if not originalNames[element] then
-					originalNames[element] = element.Text
+		if element:IsA("TextLabel") and element.Name == "EntityName" then [cite: 8]
+			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then [cite: 8]
+				if not originalNames[element] then [cite: 8]
+					originalNames[element] = element.Text [cite: 8]
 				end
-				element.Text = "Me"
+				element.Text = "Me" [cite: 8]
 			end
 		end
 		
-		if element:IsA("TextLabel") and element.Name == "DisplayName" then
-			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
-				if not originalNames[element] then
-					originalNames[element] = element.Text
+		if element:IsA("TextLabel") and element.Name == "DisplayName" then [cite: 9]
+			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then [cite: 9]
+				if not originalNames[element] then [cite: 9]
+					originalNames[element] = element.Text [cite: 9]
 				end
-				element.Text = "Me"
+				element.Text = "Me" [cite: 9]
 			end
 		end
 	end
 	
 	local function restorePlayerName(element)
-		if originalNames[element] then
-			element.Text = originalNames[element]
-			originalNames[element] = nil
+		if originalNames[element] then [cite: 9]
+			element.Text = originalNames[element] [cite: 9]
+			originalNames[element] = nil [cite: 9]
 		end
 	end
 	
 	local function processGui(gui)
-		for _, descendant in gui:GetDescendants() do
-			modifyPlayerName(descendant)
+		for _, descendant in gui:GetDescendants() do [cite: 9]
+			modifyPlayerName(descendant) [cite: 9]
 		end
 	end
 	
 	local function modifyNametag(character)
-		if not character then return end
+		if not character then return end [cite: 9]
 		
-		local head = character:FindFirstChild("Head")
-		if not head then return end
+		local head = character:FindFirstChild("Head") [cite: 9]
+		if not head then return end [cite: 9]
 		
-		local nametag = head:FindFirstChild("Nametag")
-		if not nametag then return end
+		local nametag = head:FindFirstChild("Nametag") [cite: 9]
+		if not nametag then return end [cite: 9]
 		
-		local displayNameContainer = nametag:FindFirstChild("DisplayNameContainer")
-		if not displayNameContainer then return end
+		local displayNameContainer = nametag:FindFirstChild("DisplayNameContainer") [cite: 9]
+		if not displayNameContainer then return end [cite: 9]
 		
-		local displayName = displayNameContainer:FindFirstChild("DisplayName")
-		if displayName and displayName:IsA("TextLabel") then
-			modifyPlayerName(displayName)
+		local displayName = displayNameContainer:FindFirstChild("DisplayName") [cite: 9]
+		if displayName and displayName:IsA("TextLabel") then [cite: 9]
+			modifyPlayerName(displayName) [cite: 9]
 		end
 	end
 	
 	local function restoreNametag(character)
-		if not character then return end
+		if not character then return end [cite: 9]
 		
-		local head = character:FindFirstChild("Head")
-		if not head then return end
+		local head = character:FindFirstChild("Head") [cite: 9]
+		if not head then return end [cite: 9]
 		
-		local nametag = head:FindFirstChild("Nametag")
-		if not nametag then return end
+		local nametag = head:FindFirstChild("Nametag") [cite: 9]
+		if not nametag then return end [cite: 9]
 		
-		local displayNameContainer = nametag:FindFirstChild("DisplayNameContainer")
-		if not displayNameContainer then return end
+		local displayNameContainer = nametag:FindFirstChild("DisplayNameContainer") [cite: 9]
+		if not displayNameContainer then return end [cite: 9]
 		
-		local displayName = displayNameContainer:FindFirstChild("DisplayName")
-		if displayName and displayName:IsA("TextLabel") then
-			restorePlayerName(displayName)
+		local displayName = displayNameContainer:FindFirstChild("DisplayName") [cite: 9]
+		if displayName and displayName:IsA("TextLabel") then [cite: 10]
+			restorePlayerName(displayName) [cite: 10]
 		end
 	end
 	
 	StreamProof = vape.Categories.Render:CreateModule({
-		Name = 'Stream Proof',
+		Name = 'Stream Proof', [cite: 10]
 		Function = function(callback)
 			if callback then
-				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
+				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui") [cite: 10]
 				if existingTabList then
-					processGui(existingTabList)
+					processGui(existingTabList) [cite: 10]
 					
 					StreamProof:Clean(existingTabList.DescendantAdded:Connect(function(descendant)
-						modifyPlayerName(descendant)
+						modifyPlayerName(descendant) [cite: 10]
 					end))
 				end
 				
-				local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui")
+				local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui") [cite: 10]
 				if existingKillFeed then
-					processGui(existingKillFeed)
+					processGui(existingKillFeed) [cite: 10]
 					
 					StreamProof:Clean(existingKillFeed.DescendantAdded:Connect(function(descendant)
-						modifyPlayerName(descendant)
+						modifyPlayerName(descendant) [cite: 10]
 					end))
 				end
 				
 				StreamProof:Clean(lplr.PlayerGui.ChildAdded:Connect(function(gui)
-					if gui.Name == "TabListScreenGui" then
-						processGui(gui)
+					if gui.Name == "TabListScreenGui" then [cite: 10]
+						processGui(gui) [cite: 10]
 						
 						StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
-							modifyPlayerName(descendant)
+							modifyPlayerName(descendant) [cite: 10]
 						end))
-					elseif gui.Name == "KillFeedGui" then
-						processGui(gui)
+					elseif gui.Name == "KillFeedGui" then [cite: 10]
+						processGui(gui) [cite: 10]
 						
 						StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
-							modifyPlayerName(descendant)
+							modifyPlayerName(descendant) [cite: 10]
 						end))
 					end
 				end))
 				
 				if lplr.Character then
-					modifyNametag(lplr.Character)
+					modifyNametag(lplr.Character) [cite: 10]
 				end
 				
 				StreamProof:Clean(lplr.CharacterAdded:Connect(function(character)
-					task.wait(0.5)
+					task.wait(0.5) [cite: 10]
 					if StreamProof.Enabled then
-						modifyNametag(character)
+						modifyNametag(character) [cite: 10]
 					end
 				end))
 				
 				nametagConnection = runService.RenderStepped:Connect(function()
-					if StreamProof.Enabled and lplr.Character then
+					if StreamProof.Enabled and lplr.Character then [cite: 10]
 						pcall(function()
-							modifyNametag(lplr.Character)
+							modifyNametag(lplr.Character) [cite: 10]
 						end)
 					end
 				end)
 				
 			else
 				if nametagConnection then
-					nametagConnection:Disconnect()
-					nametagConnection = nil
+					nametagConnection:Disconnect() [cite: 10]
+					nametagConnection = nil [cite: 10]
 				end
 				
-				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
+				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui") [cite: 10]
 				if existingTabList then
-					for _, descendant in existingTabList:GetDescendants() do
-						restorePlayerName(descendant)
+					for _, descendant in existingTabList:GetDescendants() do [cite: 10]
+						restorePlayerName(descendant) [cite: 10]
 					end
 				end
 				
-				local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui")
+				local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui") [cite: 10]
 				if existingKillFeed then
-					for _, descendant in existingKillFeed:GetDescendants() do
-						restorePlayerName(descendant)
+					for _, descendant in existingKillFeed:GetDescendants() do [cite: 10]
+						restorePlayerName(descendant) [cite: 10]
 					end
 				end
 				
 				if lplr.Character then
-					restoreNametag(lplr.Character)
+					restoreNametag(lplr.Character) [cite: 10]
 				end
 				
-				table.clear(originalNames)
+				table.clear(originalNames) [cite: 10]
 			end
 		end,
-		Tooltip = 'Hides your name as much as possible  in TabList, KillFeed, and Nametag'
+		Tooltip = 'Hides your name as much as possible  in TabList, KillFeed, and Nametag' [cite: 10]
 	})
 end)
-			
+
 run(function()
     local ok, err = pcall(function()
         repeat task.wait() until vape and vape.Categories and vape.Categories.Render
