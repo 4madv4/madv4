@@ -5,7 +5,6 @@ local cloneref = cloneref or function(obj) return obj end
 local playersService = cloneref(game:GetService('Players'))
 local replicatedStorage = cloneref(game:GetService('ReplicatedStorage'))
 local inputService = cloneref(game:GetService('UserInputService'))
-local runService = cloneref(game:GetService('RunService'))
 
 local lplr = playersService.LocalPlayer
 local vape = shared.vape
@@ -1070,7 +1069,14 @@ run(function()
     })
 end)
 
-run(function()
+task.spawn(function()
+	local runService2 = cloneref(game:GetService('RunService'))
+	local playersService2 = cloneref(game:GetService('Players'))
+	local lplr2 = playersService2.LocalPlayer
+
+	repeat task.wait(0.1) until shared.vape and shared.vape.Categories and shared.vape.Categories.Render
+	local vape2 = shared.vape
+
 	local StreamProof
 	local originalNames = {}
 	local nametagConnection = nil
@@ -1078,7 +1084,7 @@ run(function()
 	local function modifyPlayerName(element)
 		if not element:IsA("TextLabel") then return end
 		if element.Name ~= "PlayerName" and element.Name ~= "EntityName" and element.Name ~= "DisplayName" then return end
-		if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
+		if element.Text:find(lplr2.Name) or element.Text:find(lplr2.DisplayName) then
 			if not originalNames[element] then
 				originalNames[element] = element.Text
 			end
@@ -1127,11 +1133,11 @@ run(function()
 		end
 	end
 
-	StreamProof = vape.Categories.Render:CreateModule({
+	StreamProof = vape2.Categories.Render:CreateModule({
 		Name = 'StreamProof',
 		Function = function(callback)
 			if callback then
-				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
+				local existingTabList = lplr2.PlayerGui:FindFirstChild("TabListScreenGui")
 				if existingTabList then
 					processGui(existingTabList)
 					StreamProof:Clean(existingTabList.DescendantAdded:Connect(function(descendant)
@@ -1139,7 +1145,7 @@ run(function()
 					end))
 				end
 
-				local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui")
+				local existingKillFeed = lplr2.PlayerGui:FindFirstChild("KillFeedGui")
 				if existingKillFeed then
 					processGui(existingKillFeed)
 					StreamProof:Clean(existingKillFeed.DescendantAdded:Connect(function(descendant)
@@ -1147,7 +1153,7 @@ run(function()
 					end))
 				end
 
-				StreamProof:Clean(lplr.PlayerGui.ChildAdded:Connect(function(gui)
+				StreamProof:Clean(lplr2.PlayerGui.ChildAdded:Connect(function(gui)
 					if gui.Name == "TabListScreenGui" then
 						processGui(gui)
 						StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
@@ -1161,21 +1167,21 @@ run(function()
 					end
 				end))
 
-				if lplr.Character then
-					modifyNametag(lplr.Character)
+				if lplr2.Character then
+					modifyNametag(lplr2.Character)
 				end
 
-				StreamProof:Clean(lplr.CharacterAdded:Connect(function(character)
+				StreamProof:Clean(lplr2.CharacterAdded:Connect(function(character)
 					task.wait(0.5)
 					if StreamProof.Enabled then
 						modifyNametag(character)
 					end
 				end))
 
-				nametagConnection = runService.RenderStepped:Connect(function()
-					if StreamProof.Enabled and lplr.Character then
+				nametagConnection = runService2.RenderStepped:Connect(function()
+					if StreamProof.Enabled and lplr2.Character then
 						pcall(function()
-							modifyNametag(lplr.Character)
+							modifyNametag(lplr2.Character)
 						end)
 					end
 				end)
@@ -1185,22 +1191,22 @@ run(function()
 					nametagConnection = nil
 				end
 
-				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
+				local existingTabList = lplr2.PlayerGui:FindFirstChild("TabListScreenGui")
 				if existingTabList then
 					for _, descendant in existingTabList:GetDescendants() do
 						restorePlayerName(descendant)
 					end
 				end
 
-				local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui")
+				local existingKillFeed = lplr2.PlayerGui:FindFirstChild("KillFeedGui")
 				if existingKillFeed then
 					for _, descendant in existingKillFeed:GetDescendants() do
 						restorePlayerName(descendant)
 					end
 				end
 
-				if lplr.Character then
-					restoreNametag(lplr.Character)
+				if lplr2.Character then
+					restoreNametag(lplr2.Character)
 				end
 
 				table.clear(originalNames)
