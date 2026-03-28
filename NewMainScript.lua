@@ -11,7 +11,7 @@ end
 local function downloadFile(path, func)
 	if not isfile(path) then
 		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/http://raw.githubusercontent.com/4madvape/madvape/'..readfile('vaperewrite/profiles/commit.txt')..'/'..select(1, path:gsub('vaperewrite/', '')), true)
+			return game:HttpGet('https://raw.githubusercontent.com/4madvape/madvape/'..readfile('vaperewrite/profiles/commit.txt')..'/'..select(1, path:gsub('vaperewrite/', '')), true)
 		end)
 		if not suc or res == '404: Not Found' then
 			error(res)
@@ -60,7 +60,7 @@ local function downloadPremadeProfiles(commit)
                 if file.name and file.name:find('.txt') and file.name ~= 'commit.txt' then
                     local filePath = 'vaperewrite/profiles/premade/' .. file.name
                     if not isfile(filePath) then
-                        local dl = file.download_url or ('https://raw.githubusercontent.com/http://raw.githubusercontent.com/4madvape/madvape/' .. commit .. '/profiles/premade/' .. file.name)
+                        local dl = file.download_url or ('https://raw.githubusercontent.com/poopparty/poopparty/' .. commit .. '/profiles/premade/' .. file.name)
                         local ds, dc = pcall(function()
                             return game:HttpGet(dl, true)
                         end)
