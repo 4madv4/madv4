@@ -1070,12 +1070,7 @@ run(function()
     })
 end)
 
-task.spawn(function()
-	repeat task.wait(0.1) until shared.vape and shared.vape.Categories and shared.vape.Categories.Render
-	local vape2 = shared.vape
-	local lplr2 = game:GetService('Players').LocalPlayer
-	local runService2 = game:GetService('RunService')
-
+run(function()
 	local StreamProof
 	local originalNames = {}
 	local nametagConnection = nil
@@ -1083,7 +1078,7 @@ task.spawn(function()
 	local function modifyPlayerName(element)
 		if not element:IsA("TextLabel") then return end
 		if element.Name ~= "PlayerName" and element.Name ~= "EntityName" and element.Name ~= "DisplayName" then return end
-		if element.Text:find(lplr2.Name) or element.Text:find(lplr2.DisplayName) then
+		if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
 			if not originalNames[element] then
 				originalNames[element] = element.Text
 			end
@@ -1132,90 +1127,93 @@ task.spawn(function()
 		end
 	end
 
-	StreamProof = vape2.Categories.Render:CreateModule({
-		Name = 'StreamProof',
-		Function = function(callback)
-			if callback then
-				local existingTabList = lplr2.PlayerGui:FindFirstChild("TabListScreenGui")
-				if existingTabList then
-					processGui(existingTabList)
-					StreamProof:Clean(existingTabList.DescendantAdded:Connect(function(descendant)
-						modifyPlayerName(descendant)
-					end))
-				end
-
-				local existingKillFeed = lplr2.PlayerGui:FindFirstChild("KillFeedGui")
-				if existingKillFeed then
-					processGui(existingKillFeed)
-					StreamProof:Clean(existingKillFeed.DescendantAdded:Connect(function(descendant)
-						modifyPlayerName(descendant)
-					end))
-				end
-
-				StreamProof:Clean(lplr2.PlayerGui.ChildAdded:Connect(function(gui)
-					if gui.Name == "TabListScreenGui" then
-						processGui(gui)
-						StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
-							modifyPlayerName(descendant)
-						end))
-					elseif gui.Name == "KillFeedGui" then
-						processGui(gui)
-						StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
+	local function registerModule()
+		StreamProof = vape.Categories.Render:CreateModule({
+			Name = 'StreamProof',
+			Function = function(callback)
+				if callback then
+					local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
+					if existingTabList then
+						processGui(existingTabList)
+						StreamProof:Clean(existingTabList.DescendantAdded:Connect(function(descendant)
 							modifyPlayerName(descendant)
 						end))
 					end
-				end))
 
-				if lplr2.Character then
-					modifyNametag(lplr2.Character)
-				end
-
-				StreamProof:Clean(lplr2.CharacterAdded:Connect(function(character)
-					task.wait(0.5)
-					if StreamProof.Enabled then
-						modifyNametag(character)
+					local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui")
+					if existingKillFeed then
+						processGui(existingKillFeed)
+						StreamProof:Clean(existingKillFeed.DescendantAdded:Connect(function(descendant)
+							modifyPlayerName(descendant)
+						end))
 					end
-				end))
 
-				nametagConnection = runService2.RenderStepped:Connect(function()
-					if StreamProof.Enabled and lplr2.Character then
-						pcall(function()
-							modifyNametag(lplr2.Character)
-						end)
+					StreamProof:Clean(lplr.PlayerGui.ChildAdded:Connect(function(gui)
+						if gui.Name == "TabListScreenGui" then
+							processGui(gui)
+							StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
+								modifyPlayerName(descendant)
+							end))
+						elseif gui.Name == "KillFeedGui" then
+							processGui(gui)
+							StreamProof:Clean(gui.DescendantAdded:Connect(function(descendant)
+								modifyPlayerName(descendant)
+							end))
+						end
+					end))
+
+					if lplr.Character then
+						modifyNametag(lplr.Character)
 					end
-				end)
-			else
-				if nametagConnection then
-					nametagConnection:Disconnect()
-					nametagConnection = nil
-				end
 
-				local existingTabList = lplr2.PlayerGui:FindFirstChild("TabListScreenGui")
-				if existingTabList then
-					for _, descendant in existingTabList:GetDescendants() do
-						restorePlayerName(descendant)
+					StreamProof:Clean(lplr.CharacterAdded:Connect(function(character)
+						task.wait(0.5)
+						if StreamProof.Enabled then
+							modifyNametag(character)
+						end
+					end))
+
+					nametagConnection = runService.RenderStepped:Connect(function()
+						if StreamProof.Enabled and lplr.Character then
+							pcall(function()
+								modifyNametag(lplr.Character)
+							end)
+						end
+					end)
+				else
+					if nametagConnection then
+						nametagConnection:Disconnect()
+						nametagConnection = nil
 					end
-				end
 
-				local existingKillFeed = lplr2.PlayerGui:FindFirstChild("KillFeedGui")
-				if existingKillFeed then
-					for _, descendant in existingKillFeed:GetDescendants() do
-						restorePlayerName(descendant)
+					local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
+					if existingTabList then
+						for _, descendant in existingTabList:GetDescendants() do
+							restorePlayerName(descendant)
+						end
 					end
+
+					local existingKillFeed = lplr.PlayerGui:FindFirstChild("KillFeedGui")
+					if existingKillFeed then
+						for _, descendant in existingKillFeed:GetDescendants() do
+							restorePlayerName(descendant)
+						end
+					end
+
+					if lplr.Character then
+						restoreNametag(lplr.Character)
+					end
+
+					table.clear(originalNames)
 				end
+			end,
+			Tooltip = 'Hides your name in TabList, KillFeed, and Nametag'
+		})
+	end
 
-				if lplr2.Character then
-					restoreNametag(lplr2.Character)
-				end
-
-				table.clear(originalNames)
-			end
-		end,
-		Tooltip = 'Hides your name in TabList, KillFeed, and Nametag'
-	})
-
-	-- Force vape to rebuild the GUI so StreamProof appears
-	pcall(function()
-		vape2:UpdateGUI()
+	-- Wait for vape GUI to finish building then register
+	task.spawn(function()
+		repeat task.wait(0.1) until vape.gui ~= nil
+		registerModule()
 	end)
 end)
