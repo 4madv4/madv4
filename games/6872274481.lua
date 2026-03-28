@@ -5153,6 +5153,285 @@ run(function()
 	})
 end)
 
+local Attacking
+run(function()
+	local Killaura
+	local Targets
+	local Range
+	local AngleSlider
+	local Max
+	local Mouse
+	local BoxSwingColor
+	local BoxAttackColor
+	local ParticleTexture
+	local ParticleColor1
+	local ParticleColor2
+	local ParticleSize
+	local KillauraFunctions = {}
+	local Particles, Boxes = {}, {}
+	local AIHit = replicatedStorage.remoteInterface.interactions.meleeAI
+	local meleePlayer = replicatedStorage.remoteInterface.interactions.meleePlayer
+	local autoBlock = replicatedStorage.remoteInterface.character.setShield
+	local blocking
+
+	local function getAttackData()
+		if Mouse.Enabled then
+			if not inputService:IsMouseButtonPressed(0) then return false end
+		end
+
+		local tool = getTool('meleeDamage')
+		return tool
+	end
+
+	local function block(state)
+		if blocking == state then return end
+		blocking = state
+		--autoBlock:FireServer(state)
+	end
+
+	Killaura = vape.Categories.Blatant:CreateModule({
+		Name = 'CatKillaura',
+		Function = function(callback)
+			if callback then
+				repeat
+					local tool = getAttackData()
+					local attacked = {}
+					Attacking = false
+					if tool then
+						local plrs = entitylib.AllPosition({
+							Range = Range.Value,
+							Wallcheck = Targets.Walls.Enabled or nil,
+							Part = 'RootPart',
+							Players = Targets.Players.Enabled,
+							NPCs = Targets.NPCs.Enabled,
+							Limit = Max.Value
+						})
+
+						if #plrs > 0 then
+							local localfacing = entitylib.character.RootPart.CFrame.LookVector * Vector3.new(1, 0, 1)
+							block(false)
+							for i, v in plrs do
+								local delta = (v.RootPart.Position - entitylib.character.RootPart.Position)
+								local angle = math.acos(localfacing:Dot((delta * Vector3.new(1, 0, 1)).Unit))
+								if angle > (math.rad(AngleSlider.Value) / 2) then continue end
+								table.insert(attacked, v)
+								targetinfo.Targets[v] = tick() + 1
+								Attacking = true
+
+								if v.NPC then
+									AIHit:FireServer(tool, aiController:GetServerModelFromClientModel(v.Character))
+								else
+									local key1, key2, key3 = Crypt.checkpublickeys()
+									if key1 and key2 and key3 then
+										meleePlayer:FireServer(tool, Crypt.crypt(key1, math.abs(v.Player.UserId) + key3, key2))
+									end
+								end
+								break
+							end
+							block(true)
+						else
+							block(false)
+						end
+					end
+
+					for i, v in KillauraFunctions do
+						v(attacked)
+					end
+
+					task.wait(Attacking and 0.25 or 0.03)
+				until not Killaura.Enabled
+			else
+				for i, v in KillauraFunctions do
+					v({})
+				end
+				Attacking = false
+				block(false)
+			end
+		end,
+		Tooltip = 'Attack players around you\nwithout aiming at them.'
+	})
+	Targets = Killaura:CreateTargets({
+		Players = true,
+		NPCs = true
+	})
+	Range = Killaura:CreateSlider({
+		Name = 'Attack range',
+		Min = 1,
+		Max = 15,
+		Default = 15,
+		Suffix = function(val)
+			return val == 1 and 'stud' or 'studs'
+		end
+	})
+	AngleSlider = Killaura:CreateSlider({
+		Name = 'Max angle',
+		Min = 1,
+		Max = 360,
+		Default = 360
+	})
+	Max = Killaura:CreateSlider({
+		Name = 'Max targets',
+		Min = 1,
+		Max = 10,
+		Default = 10
+	})
+	Mouse = Killaura:CreateToggle({Name = 'Require mouse down'})
+	Killaura:CreateToggle({
+		Name = 'Show target',
+		Function = function(callback)
+			BoxSwingColor.Object.Visible = callback
+			BoxAttackColor.Object.Visible = callback
+			if callback then
+				KillauraFunctions.Box = function(attacked)
+					if vape.ThreadFix then
+						setthreadidentity(8)
+					end
+
+					for i, v in Boxes do
+						v.Adornee = attacked[i] and attacked[i].RootPart or nil
+						if v.Adornee then
+							v.Color3 = Color3.fromHSV(BoxAttackColor.Hue, BoxAttackColor.Sat, BoxAttackColor.Value)
+							v.Transparency = 1 - BoxAttackColor.Opacity
+						end
+					end
+				end
+				for i = 1, 10 do
+					local box = Instance.new('BoxHandleAdornment')
+					box.Adornee = nil
+					box.AlwaysOnTop = true
+					box.Size = Vector3.new(3, 5, 3)
+					box.CFrame = CFrame.new(0, -0.5, 0)
+					box.ZIndex = 0
+					box.Parent = vape.gui
+					Boxes[i] = box
+				end
+			else
+				KillauraFunctions.Box = nil
+				for i, v in Boxes do
+					v:Destroy()
+				end
+				table.clear(Boxes)
+			end
+		end
+	})
+	BoxSwingColor = Killaura:CreateColorSlider({
+		Name = 'Target Color',
+		Darker = true,
+		DefaultHue = 0.6,
+		DefaultOpacity = 0.5,
+		Visible = false
+	})
+	BoxAttackColor = Killaura:CreateColorSlider({
+		Name = 'Attack Color',
+		Darker = true,
+		DefaultOpacity = 0.5,
+		Visible = false
+	})
+	Killaura:CreateToggle({
+		Name = 'Target particles',
+		Function = function(callback)
+			ParticleTexture.Object.Visible = callback
+			ParticleColor1.Object.Visible = callback
+			ParticleColor2.Object.Visible = callback
+			ParticleSize.Object.Visible = callback
+			if callback then
+				KillauraFunctions.Particles = function(attacked)
+					if vape.ThreadFix then
+						setthreadidentity(8)
+					end
+
+					for i, v in Particles do
+						v.Position = attacked[i] and attacked[i].RootPart.Position or Vector3.new(9e9, 9e9, 9e9)
+						v.Parent = attacked[i] and gameCamera or nil
+					end
+				end
+				for i = 1, 10 do
+					local part = Instance.new('Part')
+					part.Size = Vector3.one
+					part.Anchored = true
+					part.CanCollide = false
+					part.Transparency = 1
+					part.CanQuery = false
+					part.Parent = Killaura.Enabled and gameCamera or nil
+					local particles = Instance.new('ParticleEmitter')
+					particles.Brightness = 1.5
+					particles.Size = NumberSequence.new(ParticleSize.Value)
+					particles.Texture = ParticleTexture.Value
+					particles.Transparency = NumberSequence.new(0, 1)
+					particles.Lifetime = NumberRange.new(0.4)
+					particles.Rate = 1000
+					particles.Speed = NumberRange.new(12)
+					particles.Drag = 6
+					particles.Shape = Enum.ParticleEmitterShape.Sphere
+					particles.ShapePartial = 1
+					particles.Color = ColorSequence.new({
+						ColorSequenceKeypoint.new(0, Color3.fromHSV(ParticleColor1.Hue, ParticleColor1.Sat, ParticleColor1.Value)),
+						ColorSequenceKeypoint.new(1, Color3.fromHSV(ParticleColor2.Hue, ParticleColor2.Sat, ParticleColor2.Value))
+					})
+					particles.Parent = part
+					Particles[i] = part
+				end
+			else
+				for i, v in Particles do
+					v:Destroy()
+				end
+				table.clear(Particles)
+			end
+		end
+	})
+	ParticleTexture = Killaura:CreateTextBox({
+		Name = 'Texture',
+		Default = 'rbxassetid://14736249347',
+		Function = function(val)
+			for i, v in Particles do
+				v.ParticleEmitter.Texture = ParticleTexture.Value
+			end
+		end,
+		Darker = true,
+		Visible = false
+	})
+	ParticleColor1 = Killaura:CreateColorSlider({
+		Name = 'Color Begin',
+		Function = function(hue, sat, val)
+			for i, v in Particles do
+				v.ParticleEmitter.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, sat, val)),
+					ColorSequenceKeypoint.new(1, Color3.fromHSV(ParticleColor2.Hue, ParticleColor2.Sat, ParticleColor2.Value))
+				})
+			end
+		end,
+		Darker = true,
+		Visible = false
+	})
+	ParticleColor2 = Killaura:CreateColorSlider({
+		Name = 'Color End',
+		Function = function(hue, sat, val)
+			for i, v in Particles do
+				v.ParticleEmitter.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromHSV(ParticleColor1.Hue, ParticleColor1.Sat, ParticleColor1.Value)),
+					ColorSequenceKeypoint.new(1, Color3.fromHSV(hue, sat, val))
+				})
+			end
+		end,
+		Darker = true,
+		Visible = false
+	})
+	ParticleSize = Killaura:CreateSlider({
+		Name = 'Size',
+		Min = 0,
+		Max = 1,
+		Default = 0.25,
+		Decimal = 100,
+		Function = function(val)
+			for i, v in Particles do
+				v.ParticleEmitter.Size = NumberSequence.new(val)
+			end
+		end,
+		Darker = true,
+		Visible = false
+	})
+end)
+
 -- aero killaura 
 local Attacking
 run(function()
@@ -6423,284 +6702,6 @@ run(function()
             AirHitsChance.Object.Visible = true
         end
     end)
-end)
-local Attacking
-run(function()
-	local Killaura
-	local Targets
-	local Range
-	local AngleSlider
-	local Max
-	local Mouse
-	local BoxSwingColor
-	local BoxAttackColor
-	local ParticleTexture
-	local ParticleColor1
-	local ParticleColor2
-	local ParticleSize
-	local KillauraFunctions = {}
-	local Particles, Boxes = {}, {}
-	local AIHit = replicatedStorage.remoteInterface.interactions.meleeAI
-	local meleePlayer = replicatedStorage.remoteInterface.interactions.meleePlayer
-	local autoBlock = replicatedStorage.remoteInterface.character.setShield
-	local blocking
-
-	local function getAttackData()
-		if Mouse.Enabled then
-			if not inputService:IsMouseButtonPressed(0) then return false end
-		end
-
-		local tool = getTool('meleeDamage')
-		return tool
-	end
-
-	local function block(state)
-		if blocking == state then return end
-		blocking = state
-		--autoBlock:FireServer(state)
-	end
-
-	Killaura = vape.Categories.Blatant:CreateModule({
-		Name = 'CatKillaura',
-		Function = function(callback)
-			if callback then
-				repeat
-					local tool = getAttackData()
-					local attacked = {}
-					Attacking = false
-					if tool then
-						local plrs = entitylib.AllPosition({
-							Range = Range.Value,
-							Wallcheck = Targets.Walls.Enabled or nil,
-							Part = 'RootPart',
-							Players = Targets.Players.Enabled,
-							NPCs = Targets.NPCs.Enabled,
-							Limit = Max.Value
-						})
-
-						if #plrs > 0 then
-							local localfacing = entitylib.character.RootPart.CFrame.LookVector * Vector3.new(1, 0, 1)
-							block(false)
-							for i, v in plrs do
-								local delta = (v.RootPart.Position - entitylib.character.RootPart.Position)
-								local angle = math.acos(localfacing:Dot((delta * Vector3.new(1, 0, 1)).Unit))
-								if angle > (math.rad(AngleSlider.Value) / 2) then continue end
-								table.insert(attacked, v)
-								targetinfo.Targets[v] = tick() + 1
-								Attacking = true
-
-								if v.NPC then
-									AIHit:FireServer(tool, aiController:GetServerModelFromClientModel(v.Character))
-								else
-									local key1, key2, key3 = Crypt.checkpublickeys()
-									if key1 and key2 and key3 then
-										meleePlayer:FireServer(tool, Crypt.crypt(key1, math.abs(v.Player.UserId) + key3, key2))
-									end
-								end
-								break
-							end
-							block(true)
-						else
-							block(false)
-						end
-					end
-
-					for i, v in KillauraFunctions do
-						v(attacked)
-					end
-
-					task.wait(Attacking and 0.25 or 0.03)
-				until not Killaura.Enabled
-			else
-				for i, v in KillauraFunctions do
-					v({})
-				end
-				Attacking = false
-				block(false)
-			end
-		end,
-		Tooltip = 'Attack players around you\nwithout aiming at them.'
-	})
-	Targets = Killaura:CreateTargets({
-		Players = true,
-		NPCs = true
-	})
-	Range = Killaura:CreateSlider({
-		Name = 'Attack range',
-		Min = 1,
-		Max = 15,
-		Default = 15,
-		Suffix = function(val)
-			return val == 1 and 'stud' or 'studs'
-		end
-	})
-	AngleSlider = Killaura:CreateSlider({
-		Name = 'Max angle',
-		Min = 1,
-		Max = 360,
-		Default = 360
-	})
-	Max = Killaura:CreateSlider({
-		Name = 'Max targets',
-		Min = 1,
-		Max = 10,
-		Default = 10
-	})
-	Mouse = Killaura:CreateToggle({Name = 'Require mouse down'})
-	Killaura:CreateToggle({
-		Name = 'Show target',
-		Function = function(callback)
-			BoxSwingColor.Object.Visible = callback
-			BoxAttackColor.Object.Visible = callback
-			if callback then
-				KillauraFunctions.Box = function(attacked)
-					if vape.ThreadFix then
-						setthreadidentity(8)
-					end
-
-					for i, v in Boxes do
-						v.Adornee = attacked[i] and attacked[i].RootPart or nil
-						if v.Adornee then
-							v.Color3 = Color3.fromHSV(BoxAttackColor.Hue, BoxAttackColor.Sat, BoxAttackColor.Value)
-							v.Transparency = 1 - BoxAttackColor.Opacity
-						end
-					end
-				end
-				for i = 1, 10 do
-					local box = Instance.new('BoxHandleAdornment')
-					box.Adornee = nil
-					box.AlwaysOnTop = true
-					box.Size = Vector3.new(3, 5, 3)
-					box.CFrame = CFrame.new(0, -0.5, 0)
-					box.ZIndex = 0
-					box.Parent = vape.gui
-					Boxes[i] = box
-				end
-			else
-				KillauraFunctions.Box = nil
-				for i, v in Boxes do
-					v:Destroy()
-				end
-				table.clear(Boxes)
-			end
-		end
-	})
-	BoxSwingColor = Killaura:CreateColorSlider({
-		Name = 'Target Color',
-		Darker = true,
-		DefaultHue = 0.6,
-		DefaultOpacity = 0.5,
-		Visible = false
-	})
-	BoxAttackColor = Killaura:CreateColorSlider({
-		Name = 'Attack Color',
-		Darker = true,
-		DefaultOpacity = 0.5,
-		Visible = false
-	})
-	Killaura:CreateToggle({
-		Name = 'Target particles',
-		Function = function(callback)
-			ParticleTexture.Object.Visible = callback
-			ParticleColor1.Object.Visible = callback
-			ParticleColor2.Object.Visible = callback
-			ParticleSize.Object.Visible = callback
-			if callback then
-				KillauraFunctions.Particles = function(attacked)
-					if vape.ThreadFix then
-						setthreadidentity(8)
-					end
-
-					for i, v in Particles do
-						v.Position = attacked[i] and attacked[i].RootPart.Position or Vector3.new(9e9, 9e9, 9e9)
-						v.Parent = attacked[i] and gameCamera or nil
-					end
-				end
-				for i = 1, 10 do
-					local part = Instance.new('Part')
-					part.Size = Vector3.one
-					part.Anchored = true
-					part.CanCollide = false
-					part.Transparency = 1
-					part.CanQuery = false
-					part.Parent = Killaura.Enabled and gameCamera or nil
-					local particles = Instance.new('ParticleEmitter')
-					particles.Brightness = 1.5
-					particles.Size = NumberSequence.new(ParticleSize.Value)
-					particles.Texture = ParticleTexture.Value
-					particles.Transparency = NumberSequence.new(0, 1)
-					particles.Lifetime = NumberRange.new(0.4)
-					particles.Rate = 1000
-					particles.Speed = NumberRange.new(12)
-					particles.Drag = 6
-					particles.Shape = Enum.ParticleEmitterShape.Sphere
-					particles.ShapePartial = 1
-					particles.Color = ColorSequence.new({
-						ColorSequenceKeypoint.new(0, Color3.fromHSV(ParticleColor1.Hue, ParticleColor1.Sat, ParticleColor1.Value)),
-						ColorSequenceKeypoint.new(1, Color3.fromHSV(ParticleColor2.Hue, ParticleColor2.Sat, ParticleColor2.Value))
-					})
-					particles.Parent = part
-					Particles[i] = part
-				end
-			else
-				for i, v in Particles do
-					v:Destroy()
-				end
-				table.clear(Particles)
-			end
-		end
-	})
-	ParticleTexture = Killaura:CreateTextBox({
-		Name = 'Texture',
-		Default = 'rbxassetid://14736249347',
-		Function = function(val)
-			for i, v in Particles do
-				v.ParticleEmitter.Texture = ParticleTexture.Value
-			end
-		end,
-		Darker = true,
-		Visible = false
-	})
-	ParticleColor1 = Killaura:CreateColorSlider({
-		Name = 'Color Begin',
-		Function = function(hue, sat, val)
-			for i, v in Particles do
-				v.ParticleEmitter.Color = ColorSequence.new({
-					ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, sat, val)),
-					ColorSequenceKeypoint.new(1, Color3.fromHSV(ParticleColor2.Hue, ParticleColor2.Sat, ParticleColor2.Value))
-				})
-			end
-		end,
-		Darker = true,
-		Visible = false
-	})
-	ParticleColor2 = Killaura:CreateColorSlider({
-		Name = 'Color End',
-		Function = function(hue, sat, val)
-			for i, v in Particles do
-				v.ParticleEmitter.Color = ColorSequence.new({
-					ColorSequenceKeypoint.new(0, Color3.fromHSV(ParticleColor1.Hue, ParticleColor1.Sat, ParticleColor1.Value)),
-					ColorSequenceKeypoint.new(1, Color3.fromHSV(hue, sat, val))
-				})
-			end
-		end,
-		Darker = true,
-		Visible = false
-	})
-	ParticleSize = Killaura:CreateSlider({
-		Name = 'Size',
-		Min = 0,
-		Max = 1,
-		Default = 0.25,
-		Decimal = 100,
-		Function = function(val)
-			for i, v in Particles do
-				v.ParticleEmitter.Size = NumberSequence.new(val)
-			end
-		end,
-		Darker = true,
-		Visible = false
-	})
 end)
 
 -- granddad killaura
