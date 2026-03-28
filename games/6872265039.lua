@@ -188,8 +188,8 @@ run(function()
 		Tooltip = 'Automatically opens lucky crates, piston inspired!'
 	})
 end)
-
---stream proof
+	
+-- aero
 
 run(function()
 	local StreamProof
