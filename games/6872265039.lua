@@ -1077,29 +1077,13 @@ run(function()
 	local nametagConnection = nil
 
 	local function modifyPlayerName(element)
-		if element:IsA("TextLabel") and element.Name == "PlayerName" then
-			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
-				if not originalNames[element] then
-					originalNames[element] = element.Text
-				end
-				element.Text = "Me"
+		if not element:IsA("TextLabel") then return end
+		if element.Name ~= "PlayerName" and element.Name ~= "EntityName" and element.Name ~= "DisplayName" then return end
+		if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
+			if not originalNames[element] then
+				originalNames[element] = element.Text
 			end
-		end
-		if element:IsA("TextLabel") and element.Name == "EntityName" then
-			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
-				if not originalNames[element] then
-					originalNames[element] = element.Text
-				end
-				element.Text = "Me"
-			end
-		end
-		if element:IsA("TextLabel") and element.Name == "DisplayName" then
-			if element.Text:find(lplr.Name) or element.Text:find(lplr.DisplayName) then
-				if not originalNames[element] then
-					originalNames[element] = element.Text
-				end
-				element.Text = "Me"
-			end
+			element.Text = "Me"
 		end
 	end
 
