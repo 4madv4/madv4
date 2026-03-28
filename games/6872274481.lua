@@ -6426,7 +6426,7 @@ run(function()
 end)
 local Attacking
 run(function()
-	local CatKillaura
+	local Killaura
 	local Targets
 	local Range
 	local AngleSlider
