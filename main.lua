@@ -104,7 +104,7 @@ local function finishLoading()
     if not shared.vapereload then
         if not vape.Categories then return end
         if vape.Categories.Main.Options['GUI bind indicator'].Enabled then
-            local name = shared.ValidatedUsername and ('wsg, ' .. shared.ValidatedUsername .. ' :D ') or 'welcome '
+            local name = shared.ValidatedUsername and ('wsg, ' .. shared.ValidatedUsername .. ' :D ') or 'Welcome '
             vape:CreateNotification('[MADVAPE] Finished Loading', name .. (vape.VapeButton and 'Press the button in the top right to open GUI' or 'Press ' .. table.concat(vape.Keybind, ' + '):upper() .. ' to open GUI'), 5)
         end
     end
@@ -121,11 +121,11 @@ end
 
 local guiFunc, guiErr = loadstring(downloadFile('vaperewrite/guis/' .. gui .. '.lua'), 'gui')
 if not guiFunc then
-    error('[AEROV4] Failed to load GUI: ' .. tostring(guiErr))
+    error('[MADVAPE] Failed to load GUI: ' .. tostring(guiErr))
 end
 vape = guiFunc()
 if not vape then
-    error('[AEROV4] GUI returned nil file may be corrupted try deleting vaperewrite/guis/' .. gui .. '.lua and reinjecting.')
+    error('[MADVAPE] GUI returned nil file may be corrupted try deleting vaperewrite/guis/' .. gui .. '.lua and reinjecting.')
 end
 shared.vape = vape
 task.wait(0.1)
@@ -158,7 +158,7 @@ if not shared.VapeIndependent then
     else
         if not shared.VapeDeveloper then
             local suc, res = pcall(function()
-                return game:HttpGet('https://raw.githubusercontent.com/4madvape/poopparty/' .. readfile('vaperewrite/profiles/commit.txt') .. '/games/' .. game.PlaceId .. '.lua', true)
+                return game:HttpGet('https://raw.githubusercontent.com/4madvape/madvape/' .. readfile('vaperewrite/profiles/commit.txt') .. '/games/' .. game.PlaceId .. '.lua', true)
             end)
             if suc and res ~= '404: Not Found' then
                 loadstring(downloadFile('vaperewrite/games/' .. game.PlaceId .. '.lua'), tostring(game.PlaceId))(...)
