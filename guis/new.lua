@@ -1,4 +1,3 @@
---This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
 local mainapi = {
 	Categories = {},
 	GUIColor = {
@@ -138,7 +137,10 @@ local getfontsize = function(text, size, font)
 	if typeof(font) == 'Font' then
 		fontsize.Font = font
 	end
-	return textService:GetTextBoundsAsync(fontsize)
+	local ok, result = pcall(function()
+		return textService:GetTextBoundsAsync(fontsize)
+	end)
+	return ok and result or Vector2.new(#text * (size or 14) * 0.6, size or 14)
 end
 
 local function addBlur(parent, notif)
@@ -274,7 +276,14 @@ local mobileEditorOpen = false
 local mobileEditorBG = nil
 local mobileButtons = {}
 local mobileCloseBtn = nil
-local mobileEditorLabels = {} 
+local mobileEditorLabels = {}
+local addMobileButton 
+local persistentRecentNames = {}
+local activeRefreshResults = nil 
+local mobileButtonTransparency = 0
+local mobileButtonBgColor = nil
+local mobileButtonActiveColor = nil
+local mobileBtnTweens = {}
 
 local function getMobileTextColor(bg)
 	local lum = 0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B
@@ -292,11 +301,29 @@ local function formatModuleName(name)
 	return name:sub(1, m) .. '\n' .. name:sub(m + 1)
 end
 
-local function updateMobileButtonColor(btn, enabled)
+local function updateMobileButtonColor(btn, enabled, animate)
 	local vapeColor = Color3.fromHSV(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
-	local bg = enabled and vapeColor or color.Dark(uipallet.Main, -0.08)
-	btn.BackgroundColor3 = bg
-	btn.TextColor3 = getMobileTextColor(bg)
+	local bg = enabled and (mobileButtonActiveColor or vapeColor) or (mobileButtonBgColor or color.Dark(uipallet.Main, -0.08))
+	local textCol = mobileButtonTransparency > 0.7 and Color3.new(1, 1, 1) or getMobileTextColor(bg)
+	if animate and btn and btn.Parent then
+		if mobileBtnTweens[btn] then
+			mobileBtnTweens[btn]:Cancel()
+			mobileBtnTweens[btn] = nil
+		end
+		mobileBtnTweens[btn] = tweenService:Create(btn, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = bg,
+			BackgroundTransparency = mobileButtonTransparency,
+			TextColor3 = textCol
+		})
+		mobileBtnTweens[btn]:Play()
+		mobileBtnTweens[btn].Completed:Once(function()
+			mobileBtnTweens[btn] = nil
+		end)
+	else
+		btn.BackgroundColor3 = bg
+		btn.BackgroundTransparency = mobileButtonTransparency
+		btn.TextColor3 = textCol
+	end
 end
 
 local function setResizeHandlesVisible(data, visible)
@@ -326,12 +353,23 @@ local function closeMobileEditor()
 		end
 	end
 	mobileEditorOpen = false
+	activeRefreshResults = nil
+	for _, data in mobileButtons do
+		if data.button and data.button.Parent then
+			data.button.Visible = not clickgui.Visible
+		end
+	end
 end
 
 local function openMobileEditor()
 	if mobileEditorOpen then return end
 	mobileEditorOpen = true
 	clickgui.Visible = false
+	for _, data in mobileButtons do
+		if data.button and data.button.Parent then
+			data.button.Visible = true
+		end
+	end
 	mobileEditorBG = Instance.new('TextButton')
 	mobileEditorBG.Name = 'MobileEditor'
 	mobileEditorBG.Size = UDim2.fromScale(1, 1)
@@ -400,6 +438,559 @@ local function openMobileEditor()
 	mobileCloseBtn.MouseLeave:Connect(function() setXCol(Color3.new(1,1,1)) end)
 	mobileCloseBtn.MouseButton1Click:Connect(function() closeMobileEditor() end)
 
+	local PANEL_W = 224
+	local MAX_RECENTS = 5
+	local recentModules = {}
+	local recentBtns = {}
+	local searchPanelVisible = false
+	local vapeCol = Color3.fromHSV(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+
+	for _, name in persistentRecentNames do
+		if mainapi.Modules[name] then
+			table.insert(recentModules, mainapi.Modules[name])
+		end
+	end
+
+	local plusBtn = Instance.new('TextButton')
+	plusBtn.Name = 'MobileAddBtn'
+	plusBtn.Size = UDim2.fromOffset(36, 36)
+	plusBtn.AnchorPoint = Vector2.new(1, 0.5)
+	plusBtn.Position = UDim2.new(1, -6, 0.5, -20)
+	plusBtn.BackgroundTransparency = 1
+	plusBtn.BorderSizePixel = 0
+	plusBtn.AutoButtonColor = false
+	plusBtn.Text = ''
+	plusBtn.ZIndex = 25
+	plusBtn.Parent = mainapi.gui
+	table.insert(mobileEditorLabels, plusBtn)
+
+	local plusH = Instance.new('Frame')
+	plusH.AnchorPoint = Vector2.new(0.5, 0.5)
+	plusH.Size = UDim2.fromOffset(14, 3)
+	plusH.Position = UDim2.fromScale(0.5, 0.5)
+	plusH.BackgroundColor3 = vapeCol
+	plusH.BorderSizePixel = 0
+	plusH.ZIndex = 26
+	plusH.Parent = plusBtn
+	addCorner(plusH, UDim.new(1, 0))
+
+	local plusV = Instance.new('Frame')
+	plusV.AnchorPoint = Vector2.new(0.5, 0.5)
+	plusV.Size = UDim2.fromOffset(3, 14)
+	plusV.Position = UDim2.fromScale(0.5, 0.5)
+	plusV.BackgroundColor3 = vapeCol
+	plusV.BorderSizePixel = 0
+	plusV.ZIndex = 26
+	plusV.Parent = plusBtn
+	addCorner(plusV, UDim.new(1, 0))
+
+	local function setPlusCol(c)
+		plusH.BackgroundColor3 = c
+		plusV.BackgroundColor3 = c
+	end
+	local function setPlusOpen(open)
+		tween:Tween(plusH, uipallet.Tween, {Rotation = open and 45 or 0})
+		tween:Tween(plusV, uipallet.Tween, {Rotation = open and 45 or 0})
+	end
+
+	local settingsBtn = Instance.new('TextButton')
+	settingsBtn.Name = 'MobileSettingsBtn'
+	settingsBtn.Size = UDim2.fromOffset(36, 36)
+	settingsBtn.AnchorPoint = Vector2.new(1, 0.5)
+	settingsBtn.Position = UDim2.new(1, -6, 0.5, 20)
+	settingsBtn.BackgroundTransparency = 1
+	settingsBtn.BorderSizePixel = 0
+	settingsBtn.AutoButtonColor = false
+	settingsBtn.Text = ''
+	settingsBtn.ZIndex = 25
+	settingsBtn.Parent = mainapi.gui
+	table.insert(mobileEditorLabels, settingsBtn)
+
+	local gearImg = Instance.new('ImageLabel')
+	gearImg.AnchorPoint = Vector2.new(0.5, 0.5)
+	gearImg.Size = UDim2.fromOffset(20, 20)
+	gearImg.Position = UDim2.fromScale(0.5, 0.5)
+	gearImg.BackgroundTransparency = 1
+	gearImg.Image = getcustomasset('vaperewrite/assets/new/guisettings.png')
+	gearImg.ImageColor3 = vapeCol
+	gearImg.ZIndex = 26
+	gearImg.Parent = settingsBtn
+
+	local function setGearCol(c)
+		gearImg.ImageColor3 = c
+	end
+
+	local settingsPanelVisible = false
+	local SETTINGS_PANEL_W = 200
+	local SETTINGS_PANEL_H = 200
+	local settingsPanel = Instance.new('Frame')
+	settingsPanel.Name = 'MobileEditorSettingsPanel'
+	settingsPanel.Size = UDim2.fromOffset(SETTINGS_PANEL_W, SETTINGS_PANEL_H)
+	settingsPanel.AnchorPoint = Vector2.new(1, 0.5)
+	settingsPanel.Position = UDim2.new(1, SETTINGS_PANEL_W, 0.5, 20)
+	settingsPanel.BackgroundColor3 = uipallet.Main
+	settingsPanel.BackgroundTransparency = 0
+	settingsPanel.BorderSizePixel = 0
+	settingsPanel.ZIndex = 19
+	settingsPanel.ClipsDescendants = true
+	settingsPanel.Parent = mainapi.gui
+	addCorner(settingsPanel, UDim.new(0, 8))
+	addBlur(settingsPanel)
+	local settingsPanelStroke = Instance.new('UIStroke')
+	settingsPanelStroke.Color = color.Light(uipallet.Main, 0.10)
+	settingsPanelStroke.Thickness = 1
+	settingsPanelStroke.Parent = settingsPanel
+	table.insert(mobileEditorLabels, settingsPanel)
+
+	local settingsHeaderLabel = Instance.new('TextLabel')
+	settingsHeaderLabel.Size = UDim2.new(1, -10, 0, 22)
+	settingsHeaderLabel.Position = UDim2.fromOffset(10, 8)
+	settingsHeaderLabel.BackgroundTransparency = 1
+	settingsHeaderLabel.Text = 'BUTTON SETTINGS'
+	settingsHeaderLabel.TextColor3 = vapeCol
+	settingsHeaderLabel.TextSize = 12
+	settingsHeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
+	settingsHeaderLabel.FontFace = uipallet.FontSemiBold
+	settingsHeaderLabel.ZIndex = 21
+	settingsHeaderLabel.Parent = settingsPanel
+
+	local settingsDiv = Instance.new('Frame')
+	settingsDiv.Size = UDim2.new(1, -16, 0, 1)
+	settingsDiv.Position = UDim2.fromOffset(8, 32)
+	settingsDiv.BackgroundColor3 = color.Light(uipallet.Main, 0.10)
+	settingsDiv.BorderSizePixel = 0
+	settingsDiv.ZIndex = 21
+	settingsDiv.Parent = settingsPanel
+
+	local opacityLabel = Instance.new('TextLabel')
+	opacityLabel.Size = UDim2.new(1, -16, 0, 18)
+	opacityLabel.Position = UDim2.fromOffset(10, 40)
+	opacityLabel.BackgroundTransparency = 1
+	opacityLabel.Text = 'Opacity  ' .. math.floor((1 - mobileButtonTransparency) * 100) .. '%'
+	opacityLabel.TextColor3 = uipallet.Text
+	opacityLabel.TextSize = 12
+	opacityLabel.TextXAlignment = Enum.TextXAlignment.Left
+	opacityLabel.FontFace = uipallet.FontSemiBold
+	opacityLabel.ZIndex = 21
+	opacityLabel.Parent = settingsPanel
+
+	local sliderTrack = Instance.new('Frame')
+	sliderTrack.Size = UDim2.new(1, -16, 0, 6)
+	sliderTrack.Position = UDim2.fromOffset(8, 62)
+	sliderTrack.BackgroundColor3 = color.Light(uipallet.Main, 0.12)
+	sliderTrack.BorderSizePixel = 0
+	sliderTrack.ZIndex = 21
+	sliderTrack.Parent = settingsPanel
+	addCorner(sliderTrack, UDim.new(1, 0))
+
+	local sliderFill = Instance.new('Frame')
+	sliderFill.Size = UDim2.new(1 - mobileButtonTransparency, 0, 1, 0)
+	sliderFill.BackgroundColor3 = vapeCol
+	sliderFill.BorderSizePixel = 0
+	sliderFill.ZIndex = 22
+	sliderFill.Parent = sliderTrack
+	addCorner(sliderFill, UDim.new(1, 0))
+
+	local sliderKnob = Instance.new('Frame')
+	sliderKnob.Size = UDim2.fromOffset(14, 14)
+	sliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+	sliderKnob.Position = UDim2.new(1 - mobileButtonTransparency, 0, 0.5, 0)
+	sliderKnob.BackgroundColor3 = Color3.new(1, 1, 1)
+	sliderKnob.BorderSizePixel = 0
+	sliderKnob.ZIndex = 23
+	sliderKnob.Parent = sliderTrack
+	addCorner(sliderKnob, UDim.new(1, 0))
+
+	local sliderDragging = false
+	local function updateSlider(inputX)
+		local trackPos = sliderTrack.AbsolutePosition.X
+		local trackSize = sliderTrack.AbsoluteSize.X
+		local ratio = math.clamp((inputX - trackPos) / trackSize, 0, 1)
+		mobileButtonTransparency = 1 - ratio
+		sliderFill.Size = UDim2.new(ratio, 0, 1, 0)
+		sliderKnob.Position = UDim2.new(ratio, 0, 0.5, 0)
+		opacityLabel.Text = 'Opacity  ' .. math.floor(ratio * 100) .. '%'
+		for _, d in mobileButtons do
+			if d.button and d.button.Parent then
+				updateMobileButtonColor(d.button, d.module.Enabled)
+			end
+		end
+	end
+
+	sliderTrack.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+			sliderDragging = true
+			updateSlider(inp.Position.X)
+		end
+	end)
+	sliderTrack.InputEnded:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+			sliderDragging = false
+		end
+	end)
+	inputService.InputChanged:Connect(function(inp)
+		if not sliderDragging then return end
+		if not sliderTrack.Parent then sliderDragging = false return end
+		if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+			updateSlider(inp.Position.X)
+		end
+	end)
+
+	local bgColorLabel = Instance.new('TextLabel')
+	bgColorLabel.Size = UDim2.new(1, -16, 0, 16)
+	bgColorLabel.Position = UDim2.fromOffset(10, 82)
+	bgColorLabel.BackgroundTransparency = 1
+	bgColorLabel.Text = 'Background'
+	bgColorLabel.TextColor3 = color.Dark(uipallet.Text, 0.25)
+	bgColorLabel.TextSize = 11
+	bgColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+	bgColorLabel.FontFace = uipallet.FontSemiBold
+	bgColorLabel.ZIndex = 21
+	bgColorLabel.Parent = settingsPanel
+
+	local activeColorLabel = Instance.new('TextLabel')
+	activeColorLabel.Size = UDim2.new(1, -16, 0, 16)
+	activeColorLabel.Position = UDim2.fromOffset(10, 140)
+	activeColorLabel.BackgroundTransparency = 1
+	activeColorLabel.Text = 'Active'
+	activeColorLabel.TextColor3 = color.Dark(uipallet.Text, 0.25)
+	activeColorLabel.TextSize = 11
+	activeColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+	activeColorLabel.FontFace = uipallet.FontSemiBold
+	activeColorLabel.ZIndex = 21
+	activeColorLabel.Parent = settingsPanel
+
+	local BG_SWATCHES = {
+		{col = nil,                         label = 'Def'},
+		{col = Color3.new(0, 0, 0),         label = ''},
+		{col = Color3.fromRGB(28, 28, 36),  label = ''},
+		{col = Color3.fromRGB(20, 38, 20),  label = ''},
+		{col = Color3.fromRGB(38, 18, 18),  label = ''},
+		{col = Color3.fromRGB(18, 18, 48),  label = ''},
+	}
+	local ACT_SWATCHES = {
+		{col = nil,                          label = 'Def'},
+		{col = Color3.fromRGB(255, 80, 80),  label = ''},
+		{col = Color3.fromRGB(80, 220, 80),  label = ''},
+		{col = Color3.fromRGB(80, 140, 255), label = ''},
+		{col = Color3.fromRGB(255, 200, 60), label = ''},
+		{col = Color3.fromRGB(220, 80, 220), label = ''},
+	}
+
+	local function makeSwatches(list, yPos, getCurrent, setCurrent)
+		local sw_size = 22
+		local sw_gap = 4
+		local swatchEntries = {}
+
+		local function colorsMatch(a, b)
+			if a == nil and b == nil then return true end
+			if a == nil or b == nil then return false end
+			return math.abs(a.R - b.R) < 0.002 and math.abs(a.G - b.G) < 0.002 and math.abs(a.B - b.B) < 0.002
+		end
+
+		local function refreshBorders()
+			local cur = getCurrent()
+			for _, entry in swatchEntries do
+				local selected = colorsMatch(cur, entry.col)
+				entry.border.BackgroundColor3 = selected and Color3.new(1, 1, 1) or color.Light(uipallet.Main, 0.12)
+			end
+		end
+
+		local borderPad = 3
+		for idx, sw in list do
+			local bgCol = sw.col or color.Dark(uipallet.Main, -0.08)
+			local totalSize = sw_size + borderPad * 2
+			local border = Instance.new('Frame')
+			border.Size = UDim2.fromOffset(totalSize, totalSize)
+			border.Position = UDim2.fromOffset(8 + (idx - 1) * (sw_size + sw_gap + borderPad * 2), yPos - borderPad)
+			border.BackgroundColor3 = color.Light(uipallet.Main, 0.12)
+			border.BorderSizePixel = 0
+			border.ZIndex = 22
+			border.Parent = settingsPanel
+			addCorner(border, UDim.new(0, 6))
+			local s = Instance.new('TextButton')
+			s.Size = UDim2.fromOffset(sw_size, sw_size)
+			s.Position = UDim2.fromOffset(borderPad, borderPad)
+			s.BackgroundColor3 = bgCol
+			s.BorderSizePixel = 0
+			s.AutoButtonColor = false
+			s.Text = sw.label or ''
+			s.TextColor3 = Color3.fromRGB(160, 160, 160)
+			s.TextSize = 9
+			s.FontFace = uipallet.FontSemiBold
+			s.ZIndex = 23
+			s.Parent = border
+			addCorner(s, UDim.new(0, 4))
+			table.insert(swatchEntries, {border = border, col = sw.col, btn = s})
+			s.MouseButton1Click:Connect(function()
+				setCurrent(sw.col)
+				refreshBorders()
+				for _, d in mobileButtons do
+					if d.button and d.button.Parent then
+						updateMobileButtonColor(d.button, d.module.Enabled)
+					end
+				end
+			end)
+			s.MouseEnter:Connect(function()
+				if not colorsMatch(getCurrent(), sw.col) then
+					tween:Tween(s, uipallet.Tween, {BackgroundColor3 = color.Light(bgCol, 0.1)})
+				end
+			end)
+			s.MouseLeave:Connect(function()
+				if not colorsMatch(getCurrent(), sw.col) then
+					tween:Tween(s, uipallet.Tween, {BackgroundColor3 = bgCol})
+				end
+			end)
+		end
+		refreshBorders()
+	end
+
+	makeSwatches(BG_SWATCHES, 100,
+		function() return mobileButtonBgColor end,
+		function(c) mobileButtonBgColor = c end
+	)
+	makeSwatches(ACT_SWATCHES, 158,
+		function() return mobileButtonActiveColor end,
+		function(c) mobileButtonActiveColor = c end
+	)
+
+	local function hideSettingsPanel()
+		if not settingsPanelVisible then return end
+		settingsPanelVisible = false
+		setGearCol(vapeCol)
+		tween:Tween(settingsPanel, TweenInfo.new(0.28, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, SETTINGS_PANEL_W, 0.5, 20)
+		})
+	end
+	local function showSettingsPanel()
+		if settingsPanelVisible then return end
+		settingsPanelVisible = true
+		setGearCol(Color3.new(1, 1, 1))
+		tween:Tween(settingsPanel, TweenInfo.new(0.32, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1, -54, 0.5, 20)
+		})
+	end
+
+	local function setArrowCol(c) setPlusCol(c) end
+	local function setArrowOpen(open) setPlusOpen(open) end
+
+	plusBtn.MouseEnter:Connect(function() setPlusCol(Color3.new(1, 1, 1)) end)
+	plusBtn.MouseLeave:Connect(function() setPlusCol(searchPanelVisible and Color3.new(1, 1, 1) or vapeCol) end)
+	settingsBtn.MouseEnter:Connect(function() setGearCol(Color3.new(1, 1, 1)) end)
+	settingsBtn.MouseLeave:Connect(function() setGearCol(settingsPanelVisible and Color3.new(1, 1, 1) or vapeCol) end)
+	local PANEL_H = 320
+	local searchPanel = Instance.new('Frame')
+	searchPanel.Name = 'MobileEditorSearchPanel'
+	searchPanel.Size = UDim2.fromOffset(PANEL_W, PANEL_H)
+	searchPanel.AnchorPoint = Vector2.new(1, 0.5)
+	searchPanel.Position = UDim2.new(1, PANEL_W, 0.5, 0)
+	searchPanel.BackgroundColor3 = uipallet.Main
+	searchPanel.BackgroundTransparency = 0
+	searchPanel.BorderSizePixel = 0
+	searchPanel.ZIndex = 19
+	searchPanel.ClipsDescendants = true
+	searchPanel.Parent = mainapi.gui
+	addCorner(searchPanel, UDim.new(0, 8))
+	addBlur(searchPanel)
+	local panelStroke = Instance.new('UIStroke')
+	panelStroke.Color = color.Light(uipallet.Main, 0.10)
+	panelStroke.Thickness = 1
+	panelStroke.Parent = searchPanel
+	table.insert(mobileEditorLabels, searchPanel)
+
+	local function updateSidebarSize() end 
+
+	local function rebuildRecents()
+		table.clear(recentBtns)
+	end
+
+	local function addToRecents(mod)
+		for i, m in recentModules do
+			if m == mod then table.remove(recentModules, i) break end
+		end
+		table.insert(recentModules, 1, mod)
+		if #recentModules > MAX_RECENTS then table.remove(recentModules) end
+		table.clear(persistentRecentNames)
+		for _, m in recentModules do
+			table.insert(persistentRecentNames, m.Name)
+		end
+		rebuildRecents()
+	end
+
+	local function hideSearchPanel()
+		if not searchPanelVisible then return end
+		searchPanelVisible = false
+		setArrowOpen(false)
+		setArrowCol(vapeCol)
+		tween:Tween(searchPanel, TweenInfo.new(0.28, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, PANEL_W, 0.5, 0)
+		})
+	end
+
+	local function showSearchPanel()
+		if searchPanelVisible then return end
+		searchPanelVisible = true
+		setArrowOpen(true)
+		setArrowCol(Color3.new(1,1,1))
+		tween:Tween(searchPanel, TweenInfo.new(0.32, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1, -54, 0.5, 0)
+		})
+	end
+
+	plusBtn.MouseButton1Click:Connect(function()
+		if settingsPanelVisible then hideSettingsPanel() end
+		if searchPanelVisible then hideSearchPanel() else showSearchPanel() end
+	end)
+	settingsBtn.MouseButton1Click:Connect(function()
+		if searchPanelVisible then hideSearchPanel() end
+		if settingsPanelVisible then hideSettingsPanel() else showSettingsPanel() end
+	end)
+
+	local searchLabel = Instance.new('TextLabel')
+	searchLabel.Size = UDim2.new(1, -10, 0, 22)
+	searchLabel.Position = UDim2.fromOffset(10, 8)
+	searchLabel.BackgroundTransparency = 1
+	searchLabel.Text = 'ADD FEATURE'
+	searchLabel.TextColor3 = vapeCol
+	searchLabel.TextTransparency = 0
+	searchLabel.TextSize = 12
+	searchLabel.TextXAlignment = Enum.TextXAlignment.Left
+	searchLabel.FontFace = uipallet.FontSemiBold
+	searchLabel.ZIndex = 21
+	searchLabel.Parent = searchPanel
+	local headerDiv = Instance.new('Frame')
+	headerDiv.Size = UDim2.new(1, -16, 0, 1)
+	headerDiv.Position = UDim2.fromOffset(8, 32)
+	headerDiv.BackgroundColor3 = color.Light(uipallet.Main, 0.10)
+	headerDiv.BorderSizePixel = 0
+	headerDiv.ZIndex = 21
+	headerDiv.Parent = searchPanel
+
+	local searchBox = Instance.new('TextBox')
+	searchBox.Size = UDim2.new(1, -16, 0, 34)
+	searchBox.Position = UDim2.fromOffset(8, 40)
+	searchBox.BackgroundColor3 = color.Light(uipallet.Main, 0.09)
+	searchBox.BackgroundTransparency = 0
+	searchBox.BorderSizePixel = 0
+	searchBox.Text = ''
+	searchBox.PlaceholderText = 'Search features...'
+	searchBox.PlaceholderColor3 = color.Dark(uipallet.Text, 0.38)
+	searchBox.TextColor3 = uipallet.Text
+	searchBox.TextSize = 14
+	searchBox.FontFace = uipallet.Font
+	searchBox.ClearTextOnFocus = false
+	searchBox.ZIndex = 21
+	searchBox.Parent = searchPanel
+	addCorner(searchBox, UDim.new(0, 6))
+	local searchBoxStroke = Instance.new('UIStroke')
+	searchBoxStroke.Color = color.Light(uipallet.Main, 0.14)
+	searchBoxStroke.Thickness = 1
+	searchBoxStroke.Parent = searchBox
+	local sbIcon = Instance.new('ImageLabel')
+	sbIcon.Size = UDim2.fromOffset(14, 14)
+	sbIcon.Position = UDim2.new(1, -22, 0.5, -7)
+	sbIcon.BackgroundTransparency = 1
+	sbIcon.Image = getcustomasset('vaperewrite/assets/new/search.png')
+	sbIcon.ImageColor3 = color.Dark(uipallet.Text, 0.35)
+	sbIcon.ZIndex = 22
+	sbIcon.Parent = searchPanel
+
+	local searchResultsFrame = Instance.new('ScrollingFrame')
+	searchResultsFrame.Size = UDim2.new(1, -16, 0, PANEL_H - 40 - 34 - 16)
+	searchResultsFrame.Position = UDim2.fromOffset(8, 82)
+	searchResultsFrame.BackgroundTransparency = 1
+	searchResultsFrame.BorderSizePixel = 0
+	searchResultsFrame.ScrollBarThickness = 3
+	searchResultsFrame.ScrollBarImageTransparency = 0.5
+	searchResultsFrame.CanvasSize = UDim2.new()
+	searchResultsFrame.ZIndex = 21
+	searchResultsFrame.Parent = searchPanel
+
+	local resultsLayout = Instance.new('UIListLayout')
+	resultsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	resultsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	resultsLayout.Padding = UDim.new(0, 4)
+	resultsLayout.Parent = searchResultsFrame
+
+	local function refreshResults(query)
+		for _, child in searchResultsFrame:GetChildren() do
+			if child:IsA('TextButton') then child:Destroy() end
+		end
+		local lower = (query or ''):lower()
+		local count = 0
+		for name, mod in mainapi.Modules do
+			if lower == '' or name:lower():find(lower, 1, true) then
+				local alreadyAdded = false
+				for _, d in mobileButtons do
+					if d.module == mod then alreadyAdded = true break end
+				end
+				local rb = Instance.new('TextButton')
+				rb.Size = UDim2.new(1, 0, 0, 36)
+				rb.BackgroundColor3 = alreadyAdded and color.Light(uipallet.Main, 0.06) or color.Light(uipallet.Main, 0.03)
+				rb.BorderSizePixel = 0
+				rb.AutoButtonColor = false
+				rb.Text = ''
+				rb.ZIndex = 22
+				rb.LayoutOrder = count
+				rb.Parent = searchResultsFrame
+				addCorner(rb, UDim.new(0, 6))
+				local rLabel = Instance.new('TextLabel')
+				rLabel.Size = UDim2.new(1, alreadyAdded and -28 or -10, 1, 0)
+				rLabel.Position = UDim2.fromOffset(10, 0)
+				rLabel.BackgroundTransparency = 1
+				rLabel.Text = name
+				rLabel.TextColor3 = alreadyAdded and vapeCol or uipallet.Text
+				rLabel.TextSize = 14
+				rLabel.FontFace = alreadyAdded and uipallet.FontSemiBold or uipallet.Font
+				rLabel.TextXAlignment = Enum.TextXAlignment.Left
+				rLabel.ZIndex = 23
+				rLabel.Parent = rb
+				if alreadyAdded then
+					local checkLabel = Instance.new('TextLabel')
+					checkLabel.Size = UDim2.fromOffset(20, 36)
+					checkLabel.Position = UDim2.new(1, -24, 0, 0)
+					checkLabel.BackgroundTransparency = 1
+					checkLabel.Text = '\u{2713}'
+					checkLabel.TextColor3 = vapeCol
+					checkLabel.TextSize = 14
+					checkLabel.FontFace = uipallet.FontSemiBold
+					checkLabel.ZIndex = 23
+					checkLabel.Parent = rb
+				end
+				if not alreadyAdded then
+					rb.MouseButton1Click:Connect(function()
+						addMobileButton(mod)
+						addToRecents(mod)
+						hideSearchPanel()
+						refreshResults(searchBox.Text)
+					end)
+					rb.MouseEnter:Connect(function()
+						tween:Tween(rb, uipallet.Tween, {BackgroundColor3 = color.Light(uipallet.Main, 0.08)})
+						rLabel.TextColor3 = color.Light(uipallet.Text, 0.1)
+					end)
+					rb.MouseLeave:Connect(function()
+						tween:Tween(rb, uipallet.Tween, {BackgroundColor3 = color.Light(uipallet.Main, 0.03)})
+						rLabel.TextColor3 = uipallet.Text
+					end)
+				end
+				count += 1
+			end
+		end
+		task.defer(function()
+			searchResultsFrame.CanvasSize = UDim2.fromOffset(0, resultsLayout.AbsoluteContentSize.Y)
+		end)
+	end
+
+	activeRefreshResults = refreshResults
+	refreshResults('')
+	rebuildRecents() 
+	searchBox:GetPropertyChangedSignal('Text'):Connect(function()
+		refreshResults(searchBox.Text)
+	end)
+	resultsLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+		searchResultsFrame.CanvasSize = UDim2.fromOffset(0, resultsLayout.AbsoluteContentSize.Y)
+	end)
+
 	for _, data in mobileButtons do
 		data.editorMode = true
 		setResizeHandlesVisible(data, false)
@@ -407,7 +998,7 @@ local function openMobileEditor()
 	end
 end
 
-local function addMobileButton(moduleapi, savedX, savedY, savedW, savedH, silent)
+addMobileButton = function(moduleapi, savedX, savedY, savedW, savedH, silent)
 	for _, data in mobileButtons do
 		if data.module == moduleapi then return end
 	end
@@ -638,6 +1229,9 @@ local function addMobileButton(moduleapi, savedX, savedY, savedW, savedH, silent
 			panel:Destroy()
 			connector:Destroy()
 			btn:Destroy()
+			if activeRefreshResults then
+				activeRefreshResults('')
+			end
 		end)
 	end)
 	removeBtn.MouseEnter:Connect(function()
@@ -744,7 +1338,7 @@ local function addMobileButton(moduleapi, savedX, savedY, savedW, savedH, silent
 		else
 			if moduleapi.KeybindMode == 'Toggle' then
 				moduleapi:Toggle()
-				updateMobileButtonColor(btn, moduleapi.Enabled)
+				updateMobileButtonColor(btn, moduleapi.Enabled, true)
 			end
 		end
 	end)
@@ -4289,6 +4883,8 @@ function mainapi:CreateCategory(categorysettings)
 		modulebutton.TextSize = 14
 		modulebutton.FontFace = uipallet.Font
 		modulebutton.Parent = children
+		addTooltip(modulebutton, modulesettings.Tooltip or modulesettings.Name)
+
 		local gradient = Instance.new('UIGradient')
 		gradient.Rotation = 90
 		gradient.Enabled = false
@@ -4695,22 +5291,6 @@ function mainapi:CreateCategory(categorysettings)
 			bind.Visible = #moduleapi.Bind > 0 or hovered or modulechildren.Visible
 			pinbutton.Visible = hovered or modulechildren.Visible or moduleapi.Pinned
 		end)
-		local mbHolding = false
-		if inputService.TouchEnabled then
-		modulebutton.MouseButton1Down:Connect(function()
-			mbHolding = true
-			local holdStart = tick()
-			repeat task.wait(0.05) until not mbHolding or (tick() - holdStart) >= 0.7
-			if mbHolding and (tick() - holdStart) >= 0.7 then
-				mbHolding = false
-				openMobileEditor()
-				addMobileButton(moduleapi)
-			end
-		end)
-		modulebutton.MouseButton1Up:Connect(function()
-			mbHolding = false
-		end)
-		end
 		modulebutton.MouseButton1Click:Connect(function()
 			if not mobileEditorOpen then
 				moduleapi:Toggle()
@@ -6234,6 +6814,17 @@ function mainapi:Load(skipgui, profile)
 			savecheck = false
 		end
 
+		if guidata.MobileSettings then
+			local ms = guidata.MobileSettings
+			mobileButtonTransparency = ms.Transparency or 0
+			if ms.BgColor then
+				mobileButtonBgColor = Color3.new(ms.BgColor.R, ms.BgColor.G, ms.BgColor.B)
+			end
+			if ms.ActiveColor then
+				mobileButtonActiveColor = Color3.new(ms.ActiveColor.R, ms.ActiveColor.G, ms.ActiveColor.B)
+			end
+		end
+
 		if not skipgui then
 			self.Keybind = guidata.Keybind
 			for i, v in guidata.Categories do
@@ -6267,6 +6858,13 @@ function mainapi:Load(skipgui, profile)
 	self.Profiles = guidata.Profiles or {{
 		Name = 'default', Bind = {}
 	}}
+	if not inputService.TouchEnabled then
+		for _, profile in ipairs(self.Profiles) do
+			if type(profile.Bind) == 'table' and profile.Bind.Mobile then
+				profile.Bind = {}
+			end
+		end
+	end
 	self.Categories.Profiles:ChangeValue()
 	if self.ProfileLabel then
 		self.ProfileLabel.Text = #self.Profile > 10 and self.Profile:sub(1, 10)..'...' or self.Profile
@@ -6318,8 +6916,13 @@ function mainapi:Load(skipgui, profile)
 			end
 			object.KeybindMode = v.KeybindMode or "Toggle"
 			object.HoldCount = 0
-			object:SetBind(v.Bind)
-			object.Object.Bind.Visible = #v.Bind > 0
+			if inputService.TouchEnabled and type(v.Bind) == 'table' and v.Bind.Mobile then
+				object:SetBind({})
+				object.Object.Bind.Visible = false
+			else
+				object:SetBind(v.Bind)
+				object.Object.Bind.Visible = #v.Bind > 0
+			end
 			if v.Pinned and not object.Pinned then
 				local pinButton = object.Object:FindFirstChild('Pin')
 				if pinButton then
@@ -6327,6 +6930,23 @@ function mainapi:Load(skipgui, profile)
 						connection:Fire()
 					end
 				end
+			end
+		end
+
+		for _, data in mobileButtons do
+			pcall(function()
+				if data.resizeConn then data.resizeConn:Disconnect() end
+				if data.resizeEndConn then data.resizeEndConn:Disconnect() end
+				if data.button and data.button.Parent then data.button:Destroy() end
+				if data.settingsPanel and data.settingsPanel.Parent then data.settingsPanel:Destroy() end
+			end)
+		end
+		table.clear(mobileButtons)
+		for i, v in savedata.Modules do
+			local object = self.Modules[i]
+			if not object then continue end
+			if inputService.TouchEnabled and type(v.Bind) == 'table' and v.Bind.Mobile then
+				createMobileButton(object, Vector2.new(v.Bind.X or 0, v.Bind.Y or 0), v.Bind.W, v.Bind.H)
 			end
 		end
 
@@ -6391,6 +7011,11 @@ function mainapi:Load(skipgui, profile)
 			clickgui.Visible = not clickgui.Visible
 			tooltip.Visible = false
 			self:BlurCheck()
+			for _, data in mobileButtons do
+				if data.button and data.button.Parent then
+					data.button.Visible = not clickgui.Visible or mobileEditorOpen
+				end
+			end
 		end)
 	end
 end
@@ -6402,7 +7027,9 @@ function mainapi:LoadOptions(object, savedoptions)
 	for i, v in savedoptions do
 		local option = object.Options[i]
 		if not option then continue end
-		option:Load(v)
+		pcall(function()
+			option:Load(v)
+		end)
 	end
 end
 
@@ -6434,7 +7061,12 @@ function mainapi:Save(newprofile)
 		Categories = {},
 		Profile = newprofile or self.Profile,
 		Profiles = self.Profiles,
-		Keybind = self.Keybind
+		Keybind = self.Keybind,
+		MobileSettings = {
+			Transparency = mobileButtonTransparency,
+			BgColor = mobileButtonBgColor and {R = mobileButtonBgColor.R, G = mobileButtonBgColor.G, B = mobileButtonBgColor.B} or nil,
+			ActiveColor = mobileButtonActiveColor and {R = mobileButtonActiveColor.R, G = mobileButtonActiveColor.G, B = mobileButtonActiveColor.B} or nil,
+		}
 	}
 	local savedata = {
 		Modules = {},
@@ -7721,6 +8353,15 @@ guipane:CreateButton({
 	end,
 	Tooltip = 'This will reset your GUI back to default'
 })
+if inputService.TouchEnabled then
+    guipane:CreateButton({
+        Name = 'Mobile Editor',
+        Function = function()
+            openMobileEditor()
+        end,
+        Tooltip = 'Open the mobile bind editor'
+    })
+end
 guipane:CreateButton({
 	Name = 'Sort GUI',
 	Function = function()
@@ -8617,23 +9258,32 @@ mainapi:Clean(inputService.InputBegan:Connect(function(inputObj)
 			clickgui.Visible = not clickgui.Visible
 			tooltip.Visible = false
 			mainapi:BlurCheck()
+			for _, data in mobileButtons do
+				if data.button and data.button.Parent then
+					data.button.Visible = not clickgui.Visible or mobileEditorOpen
+				end
+			end
 		end
 
 		local toggled = false
 		for i, v in mainapi.Modules do
-			if checkKeybinds(mainapi.HeldKeybinds, v.Bind, inputObj.KeyCode.Name) then
-				if v.KeybindMode == "Hold" then
-					v.HoldCount = v.HoldCount + 1
-					if v.HoldCount == 1 then
-						v:SetEnabled(true, true)
-						mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+			if type(v.Bind) == 'table' and v.Bind.Mobile then
+				-- skip mobile‑only binds on desktop
+			else
+				if checkKeybinds(mainapi.HeldKeybinds, v.Bind, inputObj.KeyCode.Name) then
+					if v.KeybindMode == "Hold" then
+						v.HoldCount = v.HoldCount + 1
+						if v.HoldCount == 1 then
+							v:SetEnabled(true, true)
+							mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+						end
+					else
+						toggled = true
+						if mainapi.ToggleNotifications.Enabled then
+							mainapi:CreateNotification('Module Toggled', i.."<font color='#FFFFFF'> has been </font>"..(not v.Enabled and "<font color='#5AFF5A'>Enabled</font>" or "<font color='#FF5A5A'>Disabled</font>").."<font color='#FFFFFF'>!</font>", 0.75)
+						end
+						v:Toggle(true)
 					end
-				else
-					toggled = true
-					if mainapi.ToggleNotifications.Enabled then
-						mainapi:CreateNotification('Module Toggled', i.."<font color='#FFFFFF'> has been </font>"..(not v.Enabled and "<font color='#5AFF5A'>Enabled</font>" or "<font color='#FF5A5A'>Disabled</font>").."<font color='#FFFFFF'>!</font>", 0.75)
-					end
-					v:Toggle(true)
 				end
 			end
 		end
@@ -8642,10 +9292,14 @@ mainapi:Clean(inputService.InputBegan:Connect(function(inputObj)
 		end
 
 		for _, v in mainapi.Profiles do
-			if checkKeybinds(mainapi.HeldKeybinds, v.Bind, inputObj.KeyCode.Name) and v.Name ~= mainapi.Profile then
-				mainapi:Save(v.Name)
-				mainapi:Load(true)
-				break
+			if type(v.Bind) == 'table' and v.Bind.Mobile then
+				-- skip
+			else
+				if checkKeybinds(mainapi.HeldKeybinds, v.Bind, inputObj.KeyCode.Name) and v.Name ~= mainapi.Profile then
+					mainapi:Save(v.Name)
+					mainapi:Load(true)
+					break
+				end
 			end
 		end
 	end
@@ -8667,11 +9321,15 @@ mainapi:Clean(inputService.InputEnded:Connect(function(inputObj)
 		end
 		for i, v in mainapi.Modules do
 			if v.KeybindMode == "Hold" then
-				if table.find(v.Bind, inputObj.KeyCode.Name) then
-					v.HoldCount = math.max(v.HoldCount - 1, 0)
-					if v.HoldCount == 0 then
-						v:SetEnabled(false, true)
-						mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+				if type(v.Bind) == 'table' and v.Bind.Mobile then
+					-- skip
+				else
+					if table.find(v.Bind, inputObj.KeyCode.Name) then
+						v.HoldCount = math.max(v.HoldCount - 1, 0)
+						if v.HoldCount == 0 then
+							v:SetEnabled(false, true)
+							mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+						end
 					end
 				end
 			end
