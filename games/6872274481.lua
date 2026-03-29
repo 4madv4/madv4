@@ -1,4 +1,3 @@
---This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
 local run = function(func)
     local ok, err = pcall(func)
     if not ok then
@@ -5250,6 +5249,7 @@ run(function()
     local FASTHITS_HIT_DEBOUNCE = 0.3
     local FastHitsHitsRequiredToggle
     local FastHitsHitsRequiredSlider
+    local FastHitsRate
     local NEWFastHitsLastShot = 0
     local NEWFastHitsUsage = 1
     local NEWFastHitsProjectileDelay = {}
@@ -5649,50 +5649,59 @@ run(function()
         return tick() > (NEWFastHitsProjectileDelay[proj[1].itemType] or 0)
     end
 
-    local function shootFuncNEW(item, ammo, projectile, itemMeta, pos, ent)
+	local function shootFuncNEW(item, ammo, projectile, itemMeta, pos, ent)
         local meta = bedwars.ProjectileMeta[projectile]
         local projSpeed, gravity = meta.launchVelocity, meta.gravitationalAcceleration or 196.2
-        local switched = switchItem(item.tool, 0.05)
-        local calc = prediction.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, RaycastParams.new(), nil, lplr:GetNetworkPing())
-        if calc then
-            targetinfo.Targets[ent] = tick() + 1
-            task.spawn(function()
-                local dir, id = CFrame.lookAt(pos, calc).LookVector, httpService:GenerateGUID(true)
-                local shootPosition = (CFrame.new(pos, calc) * CFrame.new(Vector3.new(-bedwars.BowConstantsTable.RelX, -bedwars.BowConstantsTable.RelY, -bedwars.BowConstantsTable.RelZ))).Position
-                bedwars.ProjectileController:createLocalProjectile(meta, ammo, projectile, shootPosition, id, dir * projSpeed, {drawDurationSeconds = 1})
-                local res = bedwars.Client:Get(remotes.FireProjectile).instance:InvokeServer(item.tool, ammo, projectile, shootPosition, pos, dir * projSpeed, id, {drawDurationSeconds = 1, shotId = httpService:GenerateGUID(false)}, workspace:GetServerTimeNow() - 0.045)
-                if not res then
-                    NEWFastHitsProjectileDelay[item.itemType] = tick()
-                else
-                    res.Parent = replicatedStorage
-                    local shoot = itemMeta.launchSound
-                    shoot = shoot and shoot[math.random(1, #shoot)] or nil
-                    if shoot then bedwars.SoundManager:playSound(shoot) end
+        local rayCheck = RaycastParams.new()
+        rayCheck.FilterDescendantsInstances = {workspace.Map}
+        rayCheck.FilterType = Enum.RaycastFilterType.Exclude
+        local shootPosition = pos + Vector3.new(0, 2, 0)
+        local ping = lplr:GetNetworkPing() + 0.016
+        local compensatedPos = ent.RootPart.Position + ent.RootPart.Velocity * ping
+        local calc = prediction.SolveTrajectory(shootPosition, projSpeed, gravity, compensatedPos, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, rayCheck)
+        if not calc then return end
+        local switched = switchItem(item.tool)
+        targetinfo.Targets[ent] = tick() + 1
+        task.spawn(function()
+            local dir, id = CFrame.lookAt(shootPosition, calc).LookVector, httpService:GenerateGUID(true)
+            local holdingCrossbow = item.itemType:find('crossbow')
+            local holdingBow = item.itemType:find('bow') and not holdingCrossbow
+            if holdingCrossbow then
+                pcall(function() bedwars.ViewmodelController:playAnimation(bedwars.AnimationType.FP_CROSSBOW_FIRE) end)
+                bedwars.GameAnimationUtil:playAnimation(lplr, bedwars.AnimationType.CROSSBOW_FIRE)
+            elseif holdingBow then
+                pcall(function() bedwars.ViewmodelController:playAnimation(bedwars.AnimationType.FP_CROSSBOW_FIRE) end)
+                bedwars.GameAnimationUtil:playAnimation(lplr, bedwars.AnimationType.BOW_FIRE)
+            else
+                local shootAnim = bedwars.ItemMeta[item.tool.Name].thirdPerson and bedwars.ItemMeta[item.tool.Name].thirdPerson.shootAnimation
+                if shootAnim then
+                    bedwars.GameAnimationUtil:playAnimation(lplr, shootAnim)
                 end
-            end)
-            NEWFastHitsProjectileDelay[item.itemType] = tick() + itemMeta.fireDelaySec
-            if switched then task.wait(0.05) end
-        end
+            end
+            local launchData = {drawDurationSec = 0, shotId = httpService:GenerateGUID(false)}
+            bedwars.ProjectileController:createLocalProjectile(meta, ammo, projectile, shootPosition, id, dir * projSpeed, launchData)
+            local res = projectileRemote:InvokeServer(item.tool, ammo, projectile, shootPosition, pos, dir * projSpeed, id, launchData, workspace:GetServerTimeNow() - 0.045)
+            if not res then
+                NEWFastHitsProjectileDelay[item.itemType] = tick() + (FastHitsRate and FastHitsRate:GetRandomValue() or 0.15)
+            else
+                local shoot = itemMeta.launchSound
+                shoot = shoot and shoot[math.random(1, #shoot)] or nil
+                if shoot then bedwars.SoundManager:playSound(shoot) end
+            end
+        end)
+        NEWFastHitsProjectileDelay[item.itemType] = tick() + itemMeta.fireDelaySec + (FastHitsRate and FastHitsRate:GetRandomValue() or 0)
+        if switched then task.wait(0.05) end
     end
 
     local function doFastHitsNEW(ent)
         if not ent or not ent.RootPart then return end
         local pos = entitylib.character.RootPart.Position
-        if (tick() - NEWFastHitsLastShot) < (0.2 + lplr:GetNetworkPing()) then return end
         local projectiles = getProjectiles()
         NEWFastHitsUsage += 1
         if not projectiles[NEWFastHitsUsage] then NEWFastHitsUsage = 1 end
         if projectiles and projectiles[NEWFastHitsUsage] and canShootNEW(projectiles[NEWFastHitsUsage]) then
             local item, ammo, projectile, itemMeta = unpack(projectiles[NEWFastHitsUsage])
             shootFuncNEW(item, ammo, projectile, itemMeta, pos, ent)
-            NEWFastHitsLastShot = tick()
-            task.delay(0.04, function()
-                local sword = store.tools.sword
-                if sword and sword.tool then
-                    local hotbar = getHotbar(sword.tool)
-                    if hotbar then hotbarSwitch(hotbar) end
-                end
-            end)
         end
     end
 
@@ -6813,6 +6822,7 @@ run(function()
             if AutoShootWaitDelay then AutoShootWaitDelay.Object.Visible = callback and isOG end
             if FirstPersonCheck then FirstPersonCheck.Object.Visible = callback and isOG end
             if ProjectileTypeFastHits then ProjectileTypeFastHits.Object.Visible = callback and isOG end
+            if FastHitsRate then FastHitsRate.Object.Visible = callback and not isOG end
             if FastHitsHitsRequiredToggle then FastHitsHitsRequiredToggle.Object.Visible = callback end
             if FastHitsHitsRequiredSlider then FastHitsHitsRequiredSlider.Object.Visible = callback and FastHitsHitsRequiredToggle and FastHitsHitsRequiredToggle.Enabled end
             if callback and Killaura.Enabled then
@@ -6836,7 +6846,19 @@ run(function()
             if AutoShootWaitDelay then AutoShootWaitDelay.Object.Visible = isOG end
             if FirstPersonCheck then FirstPersonCheck.Object.Visible = isOG end
             if ProjectileTypeFastHits then ProjectileTypeFastHits.Object.Visible = isOG end
+            if FastHitsRate then FastHitsRate.Object.Visible = not isOG end
         end
+    })
+
+    FastHitsRate = Killaura:CreateTwoSlider({
+        Name = 'Fire Rate',
+        Min = 0,
+        Max = 1,
+        DefaultMin = 0.05,
+        DefaultMax = 0.12,
+        Decimal = 100,
+        Tooltip = 'Random delay added on top of the weapon\'s base fire delay (lower = faster)',
+        Visible = false
     })
 
     AutoShootInterval = Killaura:CreateSlider({
