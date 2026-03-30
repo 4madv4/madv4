@@ -1,6 +1,6 @@
 local folderToClean = "vaperewrite"
 local folderToKeep = "profiles"
-local reinstallUrl = "https://raw.githubusercontent.com/4madvape/madvape/main/NewMainScript.lua"
+local reinstallUrl = "https://raw.githubusercontent.com/4madv4/madv4/main/NewMainScript.lua"
 
 local function deleteRecursive(path, keepPath)
     if path == keepPath then return end
@@ -32,6 +32,6 @@ for _, item in ipairs(listfiles(folderToClean)) do
     end
 end
 
-print("loading madvape")
+print("loading madv4")
 task.wait(1)
 loadstring(game:HttpGet(reinstallUrl, true))()
