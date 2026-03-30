@@ -1,7 +1,7 @@
 local run = function(func)
     local ok, err = pcall(func)
     if not ok then
-        warn('[MADVAPE] module failed to load: ' .. tostring(err))
+        warn('[MADV4] module failed to load: ' .. tostring(err))
     end
 end
 local vapeEvents = setmetatable({}, {
@@ -2232,7 +2232,7 @@ run(function()
 	local hasReacted = false
 	local currentTarget = nil
 	
-	local madvapebad = {
+	local madv4bad = {
 		predictStrafingMovement = function(targetPlayer, targetPart, projSpeed, gravity, origin)
 			if not targetPlayer or not targetPlayer.Character or not targetPart then 
 				return targetPart and targetPart.Position or Vector3.zero
@@ -2390,7 +2390,7 @@ run(function()
 				end
 			end
 			
-			local predictedPos = madvapebad.predictStrafingMovement(
+			local predictedPos = madv4bad.predictStrafingMovement(
 				ent.Player,
 				targetBodyPart,
 				projSpeed,
@@ -3168,7 +3168,7 @@ run(function()
 
     local function createkitrender(plr)
         local icon = Instance.new("ImageLabel")
-        icon.Name = "MadVapeKitRender" 
+        icon.Name = "MadV4KitRender" 
         icon.AnchorPoint = Vector2.new(1, 0.5)
         icon.BackgroundTransparency = 1
         icon.Position = UDim2.new(1.05, 0, 0.5, 0)
@@ -3197,7 +3197,7 @@ run(function()
         end
         
         for _, v in ipairs(PlayerGui:GetDescendants()) do
-            if v:IsA("ImageLabel") and v.Name == "MadVapeKitRender" then  
+            if v:IsA("ImageLabel") and v.Name == "MadV4KitRender" then  
                 v:Destroy()
             end
         end
@@ -3251,7 +3251,7 @@ run(function()
             local card = container:FindFirstChild("1") and container["1"]:FindFirstChild("MatchDraftPlayerCard")
             if not card then return end
             
-            local icon = card:FindFirstChild("MadVapeKitRender")  
+            local icon = card:FindFirstChild("MadV4KitRender")  
             if not icon then
                 icon = createkitrender(playerFound)
                 icon.Parent = card
@@ -3353,7 +3353,7 @@ run(function()
                     end
                     
                     local kitLabel = Instance.new("ImageLabel")
-                    kitLabel.Name = "MadVapeKitIcon"
+                    kitLabel.Name = "MadV4KitIcon"
                     kitLabel.Size = UDim2.new(1, 0, 1, 0)
                     kitLabel.Position = UDim2.new(1.1, 0, 0, 0)
                     kitLabel.BackgroundTransparency = 1
@@ -5610,7 +5610,7 @@ run(function()
         return finalPosition
     end
 
-    local madvapebad = {
+    local madv4bad = {
         SolveTrajectory = function(origin, projectileSpeed, gravity, targetPos, targetVelocity, playerGravity, playerHeight, playerJump, params, target, TargetPart)
             if origin and target and TargetPart then
                 local straft = predictStrafingMovement(target, TargetPart, projectileSpeed, gravity, origin)
@@ -5742,7 +5742,7 @@ run(function()
         if ProjectileTypeFastHits.Value == 'Vape' then
             calc = prediction.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, rayCheckFastHits)
         else
-            calc = madvapebad.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, rayCheckFastHits, ent.Player, ent.RootPart)
+            calc = madv4bad.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, rayCheckFastHits, ent.Player, ent.RootPart)
         end
 
         if calc then
@@ -5826,7 +5826,7 @@ run(function()
                             if ProjectileTypeFastHits.Value == 'Vape' then
                                 calc = prediction.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, RaycastParams.new())
                             else
-                                calc = madvapebad.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, RaycastParams.new(), ent.Player, ent.RootPart)
+                                calc = madv4bad.SolveTrajectory(pos, projSpeed, gravity, ent.RootPart.Position, ent.RootPart.Velocity, workspace.Gravity, ent.HipHeight, ent.Jumping and 42.6 or nil, RaycastParams.new(), ent.Player, ent.RootPart)
                             end
 
                             if calc then
@@ -9134,7 +9134,7 @@ run(function()
         return false
     end
     
-    local MadVapeTitanRemover = vape.Categories.BoostFPS:CreateModule({
+    local MadV4TitanRemover = vape.Categories.BoostFPS:CreateModule({
         Name = 'Titan Remover',
         Function = function(callback)
             if callback then
@@ -9321,12 +9321,12 @@ run(function()
         Tooltip = 'Removes Titan/Bhaa models and effects for FPS boost'
     })
 
-    EffectsOnly = MadVapeTitanRemover:CreateToggle({
+    EffectsOnly = MadV4TitanRemover:CreateToggle({
         Name = 'Effects Only',
         Default = false,
         Tooltip = 'Only hides particles keeps titan models visible',
         Function = function(callback)
-            if MadVapeTitanRemover.Enabled then
+            if MadV4TitanRemover.Enabled then
                 for object, properties in pairs(originalProperties) do
                     if object and object.Parent then
                         pcall(function()
@@ -9341,9 +9341,9 @@ run(function()
                 processedObjects = {}
                 originalProperties = {}
                 
-                MadVapeTitanRemover:Toggle()
+                MadV4TitanRemover:Toggle()
                 task.wait()
-                MadVapeTitanRemover:Toggle()
+                MadV4TitanRemover:Toggle()
             end
         end
     })
@@ -18798,7 +18798,7 @@ run(function()
 	local detectedPlayers = {}
 	local processing = {}
 
-	getgenv()._madvape_staffCounts = {spec=0, closet=0, mod=0, impossible=0}
+	getgenv()._madv4_staffCounts = {spec=0, closet=0, mod=0, impossible=0}
 	local function refreshStaffCounts()
 		local c = {spec=0, closet=0, mod=0, impossible=0}
 		for _, data in pairs(detectedPlayers) do
@@ -18813,7 +18813,7 @@ run(function()
 				c.mod += 1
 			end
 		end
-		getgenv()._madvape_staffCounts = c
+		getgenv()._madv4_staffCounts = c
 		vapeEvents.StaffCountUpdate:Fire()
 	end
 
@@ -34635,7 +34635,7 @@ run(function()
 			if callback then
 				local syncEvents = bedwars.ClientSyncEvents
 				if not syncEvents or not syncEvents.SwordSwing then
-					warn('[MADVAPE] martinspeed: swordswing event not found')
+					warn('[MADV4] martinspeed: swordswing event not found')
 					return
 				end
 				local ok, conn = pcall(function()
@@ -34654,7 +34654,7 @@ run(function()
 				if ok and conn then
 					martinConn = conn
 				else
-					warn('[MADVAPE] martinspeed: failed to hook swordswing')
+					warn('[MADV4] martinspeed: failed to hook swordswing')
 				end
 			else
 				if martinConn then
