@@ -71,6 +71,7 @@ local function finishLoading()
 	vape.Init = nil
 	vape:Load()
 	task.spawn(function()
+		RestoreProfiles()
 		repeat
 			vape:Save()
 			task.wait(10)
@@ -104,7 +105,7 @@ local function finishLoading()
     if not shared.vapereload then
         if not vape.Categories then return end
         if vape.Categories.Main.Options['GUI bind indicator'].Enabled then
-            local name = shared.ValidatedUsername and ('wsg, ' .. shared.ValidatedUsername .. ' :D ') or 'Welcome '
+            local name = shared.ValidatedUsername and ('wsg, ' .. shared.ValidatedUsername .. ' :D ') or 'welcome '
             vape:CreateNotification('[MADV4] Finished Loading', name .. (vape.VapeButton and 'Press the button in the top right to open GUI' or 'Press ' .. table.concat(vape.Keybind, ' + '):upper() .. ' to open GUI'), 5)
         end
     end
