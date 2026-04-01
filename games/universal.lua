@@ -17,7 +17,7 @@ end
 local function downloadFile(path, func)
 	if not isfile(path) then
 		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/4madv4/madv4/'..readfile('vaperewrite/profiles/commit.txt')..'/'..select(1, path:gsub('vaperewrite/', '')), true)
+			return game:HttpGet('https://raw.githubusercontent.com/4madv4/madv4/'..readfile('newvape/profiles/commit.txt')..'/'..select(1, path:gsub('newvape/', '')), true)
 		end)
 		if not suc or res == '404: Not Found' then
 			error(res)
@@ -75,7 +75,7 @@ local function addBlur(parent)
 	blur.Size = UDim2.new(1, 89, 1, 52)
 	blur.Position = UDim2.fromOffset(-48, -31)
 	blur.BackgroundTransparency = 1
-	blur.Image = getcustomasset('vaperewrite/assets/new/blur.png')
+	blur.Image = getcustomasset('newvape/assets/new/blur.png')
 	blur.ScaleType = Enum.ScaleType.Slice
 	blur.SliceCenter = Rect.new(52, 31, 261, 502)
 	blur.Parent = parent
@@ -222,9 +222,9 @@ local function motorMove(target, cf)
 	task.delay(0, part.Destroy, part)
 end
 
-local hash = loadstring(downloadFile('vaperewrite/libraries/hash.lua'), 'hash')()
-local prediction = loadstring(downloadFile('vaperewrite/libraries/prediction.lua'), 'prediction')()
-entitylib = loadstring(downloadFile('vaperewrite/libraries/entity.lua'), 'entitylibrary')()
+local hash = loadstring(downloadFile('newvape/libraries/hash.lua'), 'hash')()
+local prediction = loadstring(downloadFile('newvape/libraries/prediction.lua'), 'prediction')()
+entitylib = loadstring(downloadFile('newvape/libraries/entity.lua'), 'entitylibrary')()
 local whitelist = {
 	alreadychecked = {},
 	customtags = {},
@@ -580,7 +580,7 @@ run(function()
 
 		if not first or whitelist.textdata ~= whitelist.olddata then
 			if not first then
-				whitelist.olddata = isfile('vaperewrite/profiles/whitelist.json') and readfile('vaperewrite/profiles/whitelist.json') or nil
+				whitelist.olddata = isfile('newvape/profiles/whitelist.json') and readfile('newvape/profiles/whitelist.json') or nil
 			end
 
 			local suc, res = pcall(function()
@@ -627,7 +627,7 @@ run(function()
 				end
 				whitelist.olddata = whitelist.textdata
 				pcall(function()
-					writefile('vaperewrite/profiles/whitelist.json', whitelist.textdata)
+					writefile('newvape/profiles/whitelist.json', whitelist.textdata)
 				end)
 			end
 
@@ -3728,7 +3728,7 @@ run(function()
 		arrow.BackgroundTransparency = 1
 		arrow.BorderSizePixel = 0
 		arrow.Visible = false
-		arrow.Image = getcustomasset('vaperewrite/assets/new/arrowmodule.png')
+		arrow.Image = getcustomasset('newvape/assets/new/arrowmodule.png')
 		arrow.ImageColor3 = entitylib.getEntityColor(ent) or Color3.fromHSV(Color.Hue, Color.Sat, Color.Value)
 		arrow.Parent = Folder
 		Reference[ent] = arrow
@@ -5444,7 +5444,7 @@ run(function()
 	
 	Radar = vape:CreateOverlay({
 		Name = 'Radar',
-		Icon = getcustomasset('vaperewrite/assets/new/radaricon.png'),
+		Icon = getcustomasset('newvape/assets/new/radaricon.png'),
 		Size = UDim2.fromOffset(14, 14),
 		Position = UDim2.fromOffset(12, 13),
 		Function = function(callback)
@@ -5664,7 +5664,7 @@ run(function()
 	
 	SessionInfo = vape:CreateOverlay({
 		Name = 'Session Info',
-		Icon = getcustomasset('vaperewrite/assets/new/textguiicon.png'),
+		Icon = getcustomasset('newvape/assets/new/textguiicon.png'),
 		Size = UDim2.fromOffset(16, 12),
 		Position = UDim2.fromOffset(12, 14),
 		Function = function(callback)
@@ -5733,8 +5733,8 @@ run(function()
 	Hide = SessionInfo:CreateTextList({
 		Name = 'Blacklist',
 		Tooltip = 'Name of entry to hide.',
-		Icon = getcustomasset('vaperewrite/assets/new/blockedicon.png'),
-		Tab = getcustomasset('vaperewrite/assets/new/blockedtab.png'),
+		Icon = getcustomasset('newvape/assets/new/blockedicon.png'),
+		Tab = getcustomasset('newvape/assets/new/blockedtab.png'),
 		TabSize = UDim2.fromOffset(21, 16),
 		Color = Color3.fromRGB(250, 50, 56)
 	})
@@ -7074,7 +7074,7 @@ run(function()
 		end
 	end
 	
-	Atmosphere = vape.Legit:CreateModule({
+	Atmosphere = vape.Categories.Legit:CreateModule({
 		Name = 'Atmosphere',
 		Function = function(callback)
 			if callback then
@@ -7167,7 +7167,7 @@ run(function()
 	local FadeOut
 	local trail, point, point2
 	
-	Breadcrumbs = vape.Legit:CreateModule({
+	Breadcrumbs = vape.Categories.Legit:CreateModule({
 		Name = 'Breadcrumbs',
 		Function = function(callback)
 			if callback then
@@ -7284,7 +7284,7 @@ run(function()
 		motor.Parent = part
 	end
 	
-	Cape = vape.Legit:CreateModule({
+	Cape = vape.Categories.Legit:CreateModule({
 		Name = 'Cape',
 		Function = function(callback)
 			if callback then
@@ -7351,7 +7351,7 @@ run(function()
 	local Color
 	local hat
 	
-	ChinaHat = vape.Legit:CreateModule({
+	ChinaHat = vape.Categories.Legit:CreateModule({
 		Name = 'China Hat',
 		Function = function(callback)
 			if callback then
@@ -7430,7 +7430,7 @@ run(function()
 	local TwentyFourHour
 	local label
 	
-	Clock = vape.Legit:CreateModule({
+	Clock = vape.Categories.Legit:CreateModule({
 		Name = 'Clock',
 		Function = function(callback)
 			if callback then
@@ -7682,7 +7682,7 @@ run(function()
 	local Value
 	local oldfov
 	
-	FOV = vape.Legit:CreateModule({
+	FOV = vape.Categories.Legit:CreateModule({
 		Name = 'FOV',
 		Function = function(callback)
 			if callback then
@@ -7712,7 +7712,7 @@ run(function()
 	local FPS
 	local label
 	
-	FPS = vape.Legit:CreateModule({
+	FPS = vape.Categories.Legit:CreateModule({
 		Name = 'FPS',
 		Function = function(callback)
 			if callback then
@@ -7800,7 +7800,7 @@ run(function()
 		keys[keybutton] = {Key = key}
 	end
 	
-	Keystrokes = vape.Legit:CreateModule({
+	Keystrokes = vape.Categories.Legit:CreateModule({
 		Name = 'Keystrokes',
 		Function = function(callback)
 			if callback then
@@ -7905,7 +7905,7 @@ run(function()
 	local Memory
 	local label
 	
-	Memory = vape.Legit:CreateModule({
+	Memory = vape.Categories.Legit:CreateModule({
 		Name = 'Memory',
 		Function = function(callback)
 			if callback then
@@ -7952,7 +7952,7 @@ run(function()
 	local Ping
 	local label
 	
-	Ping = vape.Legit:CreateModule({
+	Ping = vape.Categories.Legit:CreateModule({
 		Name = 'Ping',
 		Function = function(callback)
 			if callback then
@@ -8042,7 +8042,7 @@ run(function()
 		end
 	end
 	
-	SongBeats = vape.Legit:CreateModule({
+	SongBeats = vape.Categories.Legit:CreateModule({
 		Name = 'Song Beats',
 		Function = function(callback)
 			if callback then
@@ -8122,7 +8122,7 @@ run(function()
 	local Speedmeter
 	local label
 	
-	Speedmeter = vape.Legit:CreateModule({
+	Speedmeter = vape.Categories.Legit:CreateModule({
 		Name = 'Speedmeter',
 		Function = function(callback)
 			if callback then
@@ -8172,7 +8172,7 @@ run(function()
 	local Value
 	local old
 	
-	TimeChanger = vape.Legit:CreateModule({
+	TimeChanger = vape.Categories.Legit:CreateModule({
 		Name = 'Time Changer',
 		Function = function(callback)
 			if callback then
@@ -8228,36 +8228,50 @@ run(function()
 end)
 
 run(function()
-	local FFlag
-	local FFlag 
-	local Value
-	FFlag = vape.Legit:CreateModule({
-		Name = "FFlag",
-		Function = function(callback)
-			if not callback then return end
-			if callback then
-				if not setfflag then vape:CreateNotification("FFlag", "your current executor is shit asf: '"..identifyexecutor().."' just doesnt support setfflag please quit", 6, "warning"); return end
-				local s, e = pcall(function()
-					local FFlags = httpService:JSONDecode(FFlag.Value)
-					for a, b in FFlags do
-						task.spawn(function()
-							local i = tostring(a)
-							local v = tostring(b)
-							setfflag(i,v)
-						end)
-					end
-				end)
-				if not s then
-					vape:CreateNotification("fflag", "error: "..e, 6, "alert")
-				end
-			end
-		end,
-		Tooltip = "edit current flags or add new flags",
-	})
-	FFlag = FFlag:CreateTextBox({
-		Name = "JSON",
-		Tooltip = 'FFlag\'s MUST EXIST to use and MUST BE IN JSON FORM',
-	})
+    if not setfflag or type(setfflag) ~= 'function' then
+        vape:CreateNotification('Vape', 'setfflag not supported by this executor', 5, 'warning')
+        return
+    end
+
+    local FFlag
+    local Flags
+
+    local function ChangeFFlag(suc)
+        if not suc or not FFlag.Enabled then return end
+        local success, json = pcall(function()
+            return httpService:JSONDecode(Flags.Value)
+        end)
+
+        if not success or typeof(json) ~= 'table' then
+            vape:CreateNotification('Vape', 'Invalid json format for fflag', 12, 'warning')
+            return
+        end
+
+        for i, v in json do
+            i = i:gsub('DFInt', ''):gsub('DFFlag', ''):gsub('FFlag', ''):gsub('FInt', ''):gsub('DFString', ''):gsub('FString', '')
+
+            pcall(setfflag, i, tostring(v))
+        end
+
+        vape:CreateNotification('Vape', 'FFlags applied, Go in a new game to take effect', 12, 'info')
+    end
+
+    FFlag = vape.Categories.Legit:CreateModule({
+        Name = 'FFlag Editor',
+        Function = function(call)
+            if call then
+                ChangeFFlag(true)
+            else
+                vape:CreateNotification('Vape', 'In order to disable fflags you have applied, you need to restart Roblox', 20, 'info')
+            end
+        end
+    })
+
+    Flags = FFlag:CreateTextBox({
+        Name = 'FFlags',
+        Placeholder = 'json format only',
+        Function = ChangeFFlag
+    })
 end)
 
 run(function()
@@ -8610,3 +8624,4 @@ run(function()
 		Tooltip = "God rays effect through objects"
 	})
 end)
+
